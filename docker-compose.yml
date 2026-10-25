@@ -1,0 +1,44 @@
+
+version: '3.8'
+
+services:
+  # Microservicio en Go (Escalado horizontal a 5 instancias)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pdf-extractor-go:latest
+    environment:
+      - PORT=8080
+      - ENVIRONMENT=production
+      - WORKER_POOL_SIZE=4
+      - MAX_QUEUE_SIZE=100
+    #deploy:
+    #  replicas: 5
+    #  resources:
+    #    limits:
+    #      cpus: '1.0'
+    #      memory: 512M
+    #    reservations:
+    #      cpus: '0.25'
+    #      memory: 128M
+    #  restart_policy:
+    #    condition: on-failure
+    networks:
+      - pdf_net
+
+  # Balanceador de carga Nginx
+  #load-balancer:
+    #image: nginx:alpine
+    #ports:
+    #  - "8080:80"
+    #volumes:
+    #  - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    #depends_on:
+    #  - app
+    #networks:
+    #  - pdf_net
+
+networks:
+  pdf_net:
+    driver: bridge

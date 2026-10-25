@@ -1,0 +1,26 @@
+# Binarios compilados de Go
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+main
+app
+server
+
+# Configuración y estado de editor / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Archivos de entorno y credenciales
+.env.*
+!.env.example
+
+# Logs y temporales
+*.log
+tmp/
