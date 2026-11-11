@@ -1,0 +1,35 @@
+from dataclasses import dataclass
+from io import BytesIO
+from typing import Protocol
+
+from pypdf import PdfReader
+
+PDF_SIGNATURE = b"%PDF-"
+
+
+class InvalidPDFException(Exception):
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class ExtractionResult:
+    content: str
+    page_count: int
+
+
+class PDFExtractor(Protocol):
+    def extract(self, pdf_bytes: bytes) -> ExtractionResult: ...
+
+
+class PypdfPDFExtractor:
+    def extract(self, pdf_bytes: bytes) -> ExtractionResult:
+        if not pdf_bytes.startswith(PDF_SIGNATURE):
+            raise InvalidPDFException("uploaded file is not a valid PDF")
+
+        reader = PdfReader(BytesIO(pdf_bytes))
+        pages = [page.extract_text() or "" for page in reader.pages]
+
+        return ExtractionResult(
+            content="\n".join(pages),
+            page_count=len(pages),
+        )
