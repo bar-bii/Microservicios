@@ -5,6 +5,7 @@ description = "High-performance PDF-to-Markdown text extraction microservice"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.115",
+    "pypdf>=7.0.1",
     "uvicorn[standard]>=0.32",
 ]
 
