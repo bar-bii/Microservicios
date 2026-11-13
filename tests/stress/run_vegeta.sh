@@ -17,6 +17,17 @@ if [[ ! -f "$VEGETA_TARGETS" ]]; then
   exit 1
 fi
 
+for _ in $(seq 1 60); do
+  if curl -fsS "$BASE_URL/health" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+curl -fsS "$BASE_URL/health" >/dev/null || {
+  echo "Timeout esperando $BASE_URL/health" >&2
+  exit 1
+}
+
 mkdir -p "$RESULTS_DIR"
 
 docker run --rm -i --network host \
