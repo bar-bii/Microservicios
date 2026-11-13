@@ -6,7 +6,8 @@ import pytest
 from application.config import ConcurrencyConfig
 from application.document_service import DocumentService, QueueFullError
 from application.pdf_extractor import ExtractionResult
-from presentation.main import app, get_document_service
+from presentation.main import app
+from presentation.routers.extract import get_document_service
 
 PDF_BYTES = b"%PDF-1.7 fake pdf payload"
 

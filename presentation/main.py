@@ -1,13 +1,21 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from application.document_service import QueueFullError
-from presentation.routers.extract import get_document_service
+from application.document_service import DocumentService, QueueFullError
+from application.pdf_extractor import PypdfPDFExtractor
 from presentation.routers.extract import router as extract_router
 
-__all__ = ["app", "get_document_service"]
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    app.state.document_service = DocumentService(PypdfPDFExtractor())
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 app.include_router(extract_router)
 
 

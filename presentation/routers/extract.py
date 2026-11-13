@@ -1,20 +1,25 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from pydantic import BaseModel
 
 from application.config import UploadConfig
 from application.document_service import DocumentService
-from application.pdf_extractor import InvalidPDFError, PypdfPDFExtractor
+from application.pdf_extractor import InvalidPDFError
 
 PDF_MIME_TYPE = "application/pdf"
 
 router = APIRouter()
-_document_service = DocumentService(PypdfPDFExtractor())
 _upload_config = UploadConfig.from_env()
 
 
-def get_document_service() -> DocumentService:
-    return _document_service
+class ExtractResponse(BaseModel):
+    content: str
+    page_count: int
+
+
+def get_document_service(request: Request) -> DocumentService:
+    return request.app.state.document_service
 
 
 def get_upload_config() -> UploadConfig:
@@ -26,7 +31,7 @@ async def extract(
     file: Annotated[UploadFile, File()],
     service: Annotated[DocumentService, Depends(get_document_service)],
     upload_config: Annotated[UploadConfig, Depends(get_upload_config)],
-) -> dict[str, str | int]:
+) -> ExtractResponse:
     if file.content_type != PDF_MIME_TYPE:
         raise HTTPException(status_code=415, detail=f"uploaded file must be {PDF_MIME_TYPE}")
 
@@ -39,4 +44,4 @@ async def extract(
     except InvalidPDFError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    return {"content": result.content, "page_count": result.page_count}
+    return ExtractResponse(content=result.content, page_count=result.page_count)
