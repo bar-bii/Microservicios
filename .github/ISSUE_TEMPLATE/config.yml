@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentación del proyecto
+    url: https://github.com/bar-bii/Microservicios/blob/main/README.md
+    about: Leé el README y CONTRIBUTING antes de abrir una issue.
