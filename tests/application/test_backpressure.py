@@ -96,6 +96,17 @@ def test_concurrency_config_uses_defaults(monkeypatch):
     assert config.capacity == 104
 
 
+@pytest.mark.parametrize("name", ["WORKER_POOL_SIZE", "MAX_QUEUE_SIZE"])
+@pytest.mark.parametrize("raw_value", ["0", "-1", "abc"])
+def test_concurrency_config_rejects_invalid_values(monkeypatch, name, raw_value):
+    monkeypatch.delenv("WORKER_POOL_SIZE", raising=False)
+    monkeypatch.delenv("MAX_QUEUE_SIZE", raising=False)
+    monkeypatch.setenv(name, raw_value)
+
+    with pytest.raises(ValueError, match=name):
+        ConcurrencyConfig.from_env()
+
+
 @pytest.mark.anyio
 async def test_service_rejects_requests_when_queue_is_full(controlled_thread):
     gate, tracker = controlled_thread
