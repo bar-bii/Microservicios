@@ -1,48 +1,11 @@
 import asyncio
-import os
-from dataclasses import dataclass
 
+from application.config import ConcurrencyConfig
 from application.pdf_extractor import ExtractionResult, PDFExtractor
-
-DEFAULT_WORKER_POOL_SIZE = 4
-DEFAULT_MAX_QUEUE_SIZE = 100
 
 
 class QueueFullError(Exception):
     pass
-
-
-@dataclass(frozen=True, slots=True)
-class ConcurrencyConfig:
-    worker_pool_size: int = DEFAULT_WORKER_POOL_SIZE
-    max_queue_size: int = DEFAULT_MAX_QUEUE_SIZE
-
-    @property
-    def capacity(self) -> int:
-        return self.worker_pool_size + self.max_queue_size
-
-    @classmethod
-    def from_env(cls) -> "ConcurrencyConfig":
-        return cls(
-            worker_pool_size=_positive_int_from_env("WORKER_POOL_SIZE", DEFAULT_WORKER_POOL_SIZE),
-            max_queue_size=_positive_int_from_env("MAX_QUEUE_SIZE", DEFAULT_MAX_QUEUE_SIZE),
-        )
-
-
-def _positive_int_from_env(name: str, default: int) -> int:
-    raw_value = os.getenv(name)
-    if raw_value is None:
-        return default
-
-    try:
-        value = int(raw_value)
-    except ValueError as exc:
-        raise ValueError(f"{name} must be a positive integer") from exc
-
-    if value <= 0:
-        raise ValueError(f"{name} must be a positive integer")
-
-    return value
 
 
 class DocumentService:

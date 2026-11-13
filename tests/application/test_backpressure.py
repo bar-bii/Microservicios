@@ -3,13 +3,11 @@ import asyncio
 import httpx
 import pytest
 
-from application.document_service import (
-    ConcurrencyConfig,
-    DocumentService,
-    QueueFullError,
-)
+from application.config import ConcurrencyConfig
+from application.document_service import DocumentService, QueueFullError
 from application.pdf_extractor import ExtractionResult
-from presentation.main import app, get_document_service
+from presentation.main import app
+from presentation.routers.extract import get_document_service
 
 PDF_BYTES = b"%PDF-1.7 fake pdf payload"
 
@@ -94,6 +92,17 @@ def test_concurrency_config_uses_defaults(monkeypatch):
     assert config.worker_pool_size == 4
     assert config.max_queue_size == 100
     assert config.capacity == 104
+
+
+@pytest.mark.parametrize("name", ["WORKER_POOL_SIZE", "MAX_QUEUE_SIZE"])
+@pytest.mark.parametrize("raw_value", ["0", "-1", "abc"])
+def test_concurrency_config_rejects_invalid_values(monkeypatch, name, raw_value):
+    monkeypatch.delenv("WORKER_POOL_SIZE", raising=False)
+    monkeypatch.delenv("MAX_QUEUE_SIZE", raising=False)
+    monkeypatch.setenv(name, raw_value)
+
+    with pytest.raises(ValueError, match=name):
+        ConcurrencyConfig.from_env()
 
 
 @pytest.mark.anyio

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from application.pdf_extractor import InvalidPDFException, PypdfPDFExtractor
+from application.pdf_extractor import InvalidPDFError, PypdfPDFExtractor
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -24,10 +24,19 @@ def test_extract_text_from_valid_pdf():
     ],
 )
 def test_reject_invalid_pdf_signature(invalid_bytes):
-    with pytest.raises(InvalidPDFException):
+    with pytest.raises(InvalidPDFError):
         PypdfPDFExtractor().extract(invalid_bytes)
 
 
 def test_reject_corrupt_pdf_with_valid_signature():
-    with pytest.raises(InvalidPDFException):
+    with pytest.raises(InvalidPDFError):
         PypdfPDFExtractor().extract(b"%PDF-1.7\ncorrupt body")
+
+
+def test_extract_text_from_multipage_pdf():
+    pdf_bytes = (FIXTURES_DIR / "hello_two_pages.pdf").read_bytes()
+
+    result = PypdfPDFExtractor().extract(pdf_bytes)
+
+    assert result.content == "Hello PDF\nHello PDF"
+    assert result.page_count == 2
