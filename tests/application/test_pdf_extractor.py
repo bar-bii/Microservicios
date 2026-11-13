@@ -26,3 +26,8 @@ def test_extract_text_from_valid_pdf():
 def test_reject_invalid_pdf_signature(invalid_bytes):
     with pytest.raises(InvalidPDFException):
         PypdfPDFExtractor().extract(invalid_bytes)
+
+
+def test_reject_corrupt_pdf_with_valid_signature():
+    with pytest.raises(InvalidPDFException):
+        PypdfPDFExtractor().extract(b"%PDF-1.7\ncorrupt body")
