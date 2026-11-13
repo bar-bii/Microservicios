@@ -1,18 +1,30 @@
-version: '3.8'
-
 services:
-  # Microservicio en Python / FastAPI
   app:
     build:
       context: .
       dockerfile: Dockerfile
     image: pdf-extractor-python:latest
+    ports:
+      - "8000:8000"
     environment:
-      - PORT=8000
-      - ENVIRONMENT=production
-      - PYTHONUNBUFFERED=1
-      - WORKER_POOL_SIZE=4
-      - MAX_QUEUE_SIZE=100
+      PORT: "8000"
+      PYTHONUNBUFFERED: "1"
+      WORKER_POOL_SIZE: "4"
+      MAX_QUEUE_SIZE: "100"
+      MAX_UPLOAD_BYTES: "15728640"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - pdf_net
 
 networks:
   pdf_net:
