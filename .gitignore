@@ -151,3 +151,4 @@ tests/stress/pdfs/*.pdf
 !tests/stress/pdfs/.gitkeep
 tests/stress/results/
 tests/stress/vegeta/payloads/
+tests/stress/vegeta/targets.txt

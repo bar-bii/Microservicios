@@ -12,7 +12,7 @@ tests/stress/
 ├── run_vegeta.sh          # ejecuta el escenario Vegeta con imagen pineada
 ├── pdfs/                  # corpus generado (ignorado por Git salvo README/.gitkeep)
 ├── k6/                    # escenario k6 (spike.js)
-├── vegeta/                # targets.txt y payloads/ (ignorados)
+├── vegeta/                # build_targets.py, targets.txt y payloads/ (generados)
 └── results/               # salidas de las corridas (ignorado por Git)
 ```
 
@@ -59,7 +59,6 @@ ejecutan ambos escenarios. Al terminar, bajar el stack con `make stress-down`.
 | `K6_SUMMARY` | `k6-spike-summary.json` | Resumen exportado por k6. |
 | `K6_STRICT` | `0` | `1` activa los thresholds de latencia del benchmark. |
 | `VEGETA_IMAGE` | `peterevans/vegeta:6.9.1` | Imagen Vegeta pineada. |
-| `VEGETA_TARGETS` | `tests/stress/vegeta/targets.txt` | Archivo de targets. |
 | `VEGETA_RATE` | `50` | Tasa fija (req/s). |
 | `VEGETA_DURATION` | `30s` | Duración del ataque. |
 | `VEGETA_TIMEOUT` | `30s` | Timeout por request. |
@@ -101,3 +100,24 @@ esa línea base todavía no alcanza la referencia (p95 en el orden de decenas de
 segundos), lo que deja el margen de optimización para las tareas de rendimiento.
 
 El resumen se guarda en `tests/stress/results/k6-spike-summary.json`.
+
+## Escenario Vegeta (fixed-rate)
+
+`tests/stress/vegeta/build_targets.py` genera 4 bodies multipart deterministas
+(boundary fijo, campo `file`) y `tests/stress/vegeta/targets.txt`. El runner
+`make stress-vegeta` ataca a **50 req/s durante 30s** con timeout de **30s**,
+rotando los 4 PDFs, y escribe en `tests/stress/results/`:
+
+- `results.bin`: resultados crudos de Vegeta.
+- `vegeta-report.txt` y `vegeta-report.json`: throughput, success rate,
+  percentiles (p50/p95/p99) y timeouts.
+- `vegeta-plot.html`: gráfico de latencias.
+
+Los payloads y `targets.txt` son generados y están ignorados por Git.
+
+### Overhead de multipart
+
+Cada body agrega headers `Content-Disposition`/`Content-Type` y el boundary
+(≈176–177 bytes por request). El contrato del servicio solo acepta
+`multipart/form-data`, así que ese costo fijo es despreciable frente a PDFs de
+50 KiB–9 MiB y evita mantener un segundo camino de ingestión binaria.
