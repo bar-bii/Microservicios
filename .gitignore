@@ -145,3 +145,9 @@ migrations/
 
 # Snyk Security Extension - AI Rules (auto-generated)
 .github/instructions/snyk_rules.instructions.md
+
+# Stress test artifacts (regenerate with make stress-corpus)
+tests/stress/pdfs/*.pdf
+!tests/stress/pdfs/.gitkeep
+tests/stress/results/
+tests/stress/vegeta/payloads/
