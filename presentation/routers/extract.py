@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from application.config import UploadConfig
 from application.document_service import DocumentService
-from application.pdf_extractor import InvalidPDFException, PypdfPDFExtractor
+from application.pdf_extractor import InvalidPDFError, PypdfPDFExtractor
 
 PDF_MIME_TYPE = "application/pdf"
 
@@ -36,7 +36,7 @@ async def extract(
 
     try:
         result = await service.process(pdf_bytes)
-    except InvalidPDFException as exc:
+    except InvalidPDFError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return {"content": result.content, "page_count": result.page_count}

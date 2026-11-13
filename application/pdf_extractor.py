@@ -8,7 +8,7 @@ from pypdf.errors import PyPdfError
 PDF_SIGNATURE = b"%PDF-"
 
 
-class InvalidPDFException(Exception):
+class InvalidPDFError(Exception):
     pass
 
 
@@ -25,13 +25,13 @@ class PDFExtractor(Protocol):
 class PypdfPDFExtractor:
     def extract(self, pdf_bytes: bytes) -> ExtractionResult:
         if not pdf_bytes.startswith(PDF_SIGNATURE):
-            raise InvalidPDFException("uploaded file is not a valid PDF")
+            raise InvalidPDFError("uploaded file is not a valid PDF")
 
         try:
             reader = PdfReader(BytesIO(pdf_bytes))
             pages = [page.extract_text() or "" for page in reader.pages]
         except PyPdfError as exc:
-            raise InvalidPDFException("uploaded file is not a valid PDF") from exc
+            raise InvalidPDFError("uploaded file is not a valid PDF") from exc
 
         return ExtractionResult(
             content="\n".join(pages),

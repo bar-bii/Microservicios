@@ -3,11 +3,8 @@ import asyncio
 import httpx
 import pytest
 
-from application.document_service import (
-    ConcurrencyConfig,
-    DocumentService,
-    QueueFullError,
-)
+from application.config import ConcurrencyConfig
+from application.document_service import DocumentService, QueueFullError
 from application.pdf_extractor import ExtractionResult
 from presentation.main import app, get_document_service
 
