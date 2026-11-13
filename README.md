@@ -27,7 +27,13 @@ Code is evaluated against these criteria — apply them actively:
 
 ## Stage 2 — Microservices Split: Load/Stress Testing & Optimization
 
-Context for the project's next phase (assignment brief, not yet implemented): the PDF text/Markdown extraction responsibility is split out into its own independent microservice, benchmarked under load/stress with Grafana k6 and Vegeta against a reference implementation from the professor.
+Context for the project's next phase (assignment brief, implemented incrementally): the PDF text/Markdown extraction responsibility is split out into its own independent microservice, benchmarked under load/stress with Grafana k6 and Vegeta against a reference implementation from the professor.
+
+### Deployment
+- `docker compose up --build` levanta Traefik en `http://localhost:8080` y 5 réplicas del servicio detrás del balanceador.
+- El puerto `8000` de la app no se publica al host; todo el tráfico entra por `:8080`.
+- Límites por réplica: `1.0` CPU y `1 GB` de RAM (reservas `0.5` CPU / `512 MB`).
+- Verificación end-to-end: `tests/infra/smoke_routing.sh`.
 
 ### New microservice contract
 - Dedicated service exposing `POST /extract`, receiving the raw PDF binary (`multipart/form-data` or a direct binary body).
