@@ -1,5 +1,6 @@
 .git
 .gitignore
+.github
 .venv
 __pycache__/
 *.pyc
@@ -11,3 +12,5 @@ tests/
 .vscode/
 .idea/
 .opencode/
+CONTRIBUTING.md
+docker-compose.yml
