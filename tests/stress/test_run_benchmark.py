@@ -44,6 +44,7 @@ def fake_repo(tmp_path: Path) -> tuple[Path, Path, Path]:
         '    case "$2" in\n'
         "      version) echo 5.4.0 ;;\n"
         "      ps) echo fake-app-id ;;\n"
+        "      logs) echo fake-log-line ;;\n"
         "    esac ;;\n"
         "  stats) echo 'fake-app-1|10.0%|10MiB / 1GiB' ;;\n"
         "esac\n",
@@ -53,13 +54,18 @@ def fake_repo(tmp_path: Path) -> tuple[Path, Path, Path]:
     return root, bin_dir, docker_log
 
 
+VARIANT_VARIABLES = ("EXTRACTION_EXECUTOR", "WORKER_POOL_SIZE", "WEB_CONCURRENCY")
+
+
 def run_benchmark(
     root: Path,
     bin_dir: Path,
     mode: str,
+    variant: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    env = os.environ.copy()
+    env = {key: value for key, value in os.environ.items() if key not in VARIANT_VARIABLES}
     env["PATH"] = f"{bin_dir}:{env['PATH']}"
+    env.update(variant or {})
     return subprocess.run(
         ["bash", str(root / "tests" / "stress" / "run_benchmark.sh"), mode],
         cwd=root,
@@ -124,3 +130,48 @@ def test_run_benchmark_records_scenario_failures_and_continues(fake_repo):
     results_dir = root / "tests" / "stress" / "results" / "baseline"
     assert (results_dir / "k6-exit-code").read_text(encoding="utf-8") == "7\n"
     assert (results_dir / "vegeta-exit-code").read_text(encoding="utf-8") == "0\n"
+
+
+def test_run_benchmark_records_the_concurrency_variant(fake_repo):
+    root, bin_dir, _docker_log = fake_repo
+
+    result = run_benchmark(
+        root,
+        bin_dir,
+        "baseline",
+        variant={
+            "EXTRACTION_EXECUTOR": "process",
+            "WORKER_POOL_SIZE": "2",
+            "WEB_CONCURRENCY": "3",
+        },
+    )
+
+    assert result.returncode == 0, result.stderr
+    metadata = (root / "tests/stress/results/baseline/metadata.txt").read_text(encoding="utf-8")
+    assert "extraction_executor=process" in metadata
+    assert "worker_pool_size=2" in metadata
+    assert "web_concurrency=3" in metadata
+
+
+def test_run_benchmark_records_unset_variant_variables_as_default(fake_repo):
+    root, bin_dir, _docker_log = fake_repo
+
+    result = run_benchmark(root, bin_dir, "baseline")
+
+    assert result.returncode == 0, result.stderr
+    metadata = (root / "tests/stress/results/baseline/metadata.txt").read_text(encoding="utf-8")
+    assert "extraction_executor=default" in metadata
+    assert "worker_pool_size=default" in metadata
+    assert "web_concurrency=default" in metadata
+
+
+def test_run_benchmark_saves_container_logs_per_scenario(fake_repo):
+    root, bin_dir, _docker_log = fake_repo
+
+    result = run_benchmark(root, bin_dir, "baseline")
+
+    assert result.returncode == 0, result.stderr
+    results_dir = root / "tests" / "stress" / "results" / "baseline"
+    for scenario in ("k6", "vegeta"):
+        logs = (results_dir / f"compose-logs-{scenario}.log").read_text(encoding="utf-8")
+        assert "fake-log-line" in logs
