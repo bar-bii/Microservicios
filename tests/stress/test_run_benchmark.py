@@ -108,9 +108,7 @@ def test_run_benchmark_writes_metadata_stats_and_exit_codes(fake_repo, mode, rep
     assert "fake-app-1" in stats
     assert (results_dir / "k6-exit-code").read_text(encoding="utf-8") == "0\n"
     assert (results_dir / "vegeta-exit-code").read_text(encoding="utf-8") == "0\n"
-    assert f"compose up -d --build --scale app={replicas}" in docker_log.read_text(
-        encoding="utf-8"
-    )
+    assert f"compose up -d --build --scale app={replicas}" in docker_log.read_text(encoding="utf-8")
 
 
 def test_run_benchmark_records_scenario_failures_and_continues(fake_repo):
