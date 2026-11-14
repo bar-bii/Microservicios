@@ -35,6 +35,24 @@ Context for the project's next phase (assignment brief, implemented incrementall
 - Límites por réplica: `1.0` CPU y `1 GB` de RAM (reservas `0.5` CPU / `512 MB`).
 - Verificación end-to-end: `tests/infra/smoke_routing.sh`.
 
+### Observability
+- La app emite un log JSON por request a stdout con `timestamp`, `method`, `path`, `status`, `duration_ms` y `replica` (hostname del contenedor):
+  ```bash
+  docker compose logs -f app
+  ```
+- Traefik emite access logs JSON a stdout; `ServiceAddr` identifica el backend de cada request:
+  ```bash
+  docker compose logs -f traefik
+  ```
+- Para mapear `ServiceAddr` a una réplica:
+  ```bash
+  for id in $(docker compose ps -q app); do
+    docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}} {{.Name}}' "$id"
+  done
+  ```
+- El dashboard de Traefik está disponible solo en loopback: `http://127.0.0.1:8081/dashboard/`. No se publica en `0.0.0.0`.
+- Verificación: `tests/infra/smoke_observability.sh`.
+
 ### New microservice contract
 - Dedicated service exposing `POST /extract`, receiving the raw PDF binary (`multipart/form-data` or a direct binary body).
 - Response: `200 OK`, `application/json`, shaped as `{ "content": "<extracted text>", "page_count": <int> }`.

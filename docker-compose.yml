@@ -6,8 +6,21 @@ services:
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=pdf_net
       - --entrypoints.web.address=:80
+      - --entrypoints.traefik.address=:8080
+      - --api.dashboard=true
+      - --api.insecure=false
+      - --accesslog=true
+      - --accesslog.format=json
+      - --accesslog.fields.defaultmode=keep
+      - --accesslog.fields.headers.defaultmode=drop
     ports:
       - "8080:80"
+      - "127.0.0.1:8081:8080"
+    labels:
+      - traefik.enable=true
+      - 'traefik.http.routers.dashboard.rule=(Host(`localhost`) || Host(`127.0.0.1`)) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))'
+      - traefik.http.routers.dashboard.entrypoints=traefik
+      - traefik.http.routers.dashboard.service=api@internal
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped

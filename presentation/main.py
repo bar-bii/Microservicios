@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from application.document_service import DocumentService, QueueFullError
 from application.pdf_extractor import PypdfPDFExtractor
+from presentation.access_log import AccessLogMiddleware
 from presentation.routers.extract import router as extract_router
 
 
@@ -16,6 +17,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(AccessLogMiddleware)
 app.include_router(extract_router)
 
 
