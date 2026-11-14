@@ -36,11 +36,6 @@ class ConcurrencyTracker:
 
 
 @pytest.fixture
-def anyio_backend() -> str:
-    return "asyncio"
-
-
-@pytest.fixture
 def controlled_thread(monkeypatch):
     gate = asyncio.Event()
     tracker = ConcurrencyTracker()
