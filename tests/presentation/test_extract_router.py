@@ -49,6 +49,13 @@ def test_extract_returns_422_when_file_is_missing(client):
     assert response.status_code == 422
 
 
+def test_extract_reports_the_missing_file_field(client):
+    response = client.post("/extract")
+
+    assert response.json()["detail"][0]["type"] == "missing"
+    assert response.json()["detail"][0]["loc"] == ["body", "file"]
+
+
 def test_extract_returns_415_when_mime_is_not_pdf(client):
     pdf_bytes = (FIXTURES_DIR / "hello.pdf").read_bytes()
 
@@ -76,3 +83,10 @@ def test_extract_returns_413_when_file_exceeds_max_size(client):
         assert response.status_code == 413
     finally:
         app.dependency_overrides.clear()
+
+
+def test_openapi_documents_the_multipart_file_upload(client):
+    operation = client.get("/openapi.json").json()["paths"]["/extract"]["post"]
+
+    assert operation["requestBody"]["required"] is True
+    assert "multipart/form-data" in operation["requestBody"]["content"]

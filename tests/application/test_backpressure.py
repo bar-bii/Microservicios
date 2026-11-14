@@ -1,15 +1,20 @@
 import asyncio
+from collections.abc import AsyncIterator, Iterator
+from pathlib import Path
 
 import httpx
 import pytest
 
-from application.config import ConcurrencyConfig
+from application.config import ConcurrencyConfig, UploadConfig
 from application.document_service import DocumentService, QueueFullError
-from application.pdf_extractor import ExtractionResult
+from application.pdf_extractor import ExtractionResult, PypdfPDFExtractor
 from presentation.main import app
-from presentation.routers.extract import get_document_service
+from presentation.routers.extract import get_document_service, get_upload_config
 
 PDF_BYTES = b"%PDF-1.7 fake pdf payload"
+HELLO_PDF = (Path(__file__).parent / "fixtures" / "hello.pdf").read_bytes()
+MULTIPART_BOUNDARY = "backpressure-test-boundary"
+MULTIPART_HEADERS = {"Content-Type": f"multipart/form-data; boundary={MULTIPART_BOUNDARY}"}
 
 
 class FakeExtractor:
@@ -165,3 +170,147 @@ async def test_extract_returns_503_when_backpressure_queue_is_full(controlled_th
             assert service.pending == 0
     finally:
         app.dependency_overrides.clear()
+
+
+def multipart_body(
+    payload: bytes,
+    *,
+    field: str = "file",
+    content_type: str = "application/pdf",
+) -> bytes:
+    header = (
+        f"--{MULTIPART_BOUNDARY}\r\n"
+        f'Content-Disposition: form-data; name="{field}"; filename="sample.pdf"\r\n'
+        f"Content-Type: {content_type}\r\n"
+        "\r\n"
+    ).encode("ascii")
+    footer = f"\r\n--{MULTIPART_BOUNDARY}--\r\n".encode("ascii")
+    return header + payload + footer
+
+
+def single_slot_service() -> DocumentService:
+    return DocumentService(
+        FakeExtractor(),
+        config=ConcurrencyConfig(worker_pool_size=1, max_queue_size=1),
+    )
+
+
+@pytest.fixture
+def pdf_service() -> Iterator[DocumentService]:
+    service = DocumentService(
+        PypdfPDFExtractor(),
+        config=ConcurrencyConfig(worker_pool_size=1, max_queue_size=1),
+    )
+    app.dependency_overrides[get_document_service] = lambda: service
+    app.dependency_overrides[get_upload_config] = lambda: UploadConfig(
+        max_upload_bytes=len(HELLO_PDF)
+    )
+    try:
+        yield service
+    finally:
+        app.dependency_overrides.clear()
+
+
+def asgi_client() -> httpx.AsyncClient:
+    return httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test",
+    )
+
+
+def test_admit_reserves_a_slot_until_the_block_exits():
+    service = single_slot_service()
+
+    with service.admit():
+        assert service.pending == 1
+
+    assert service.pending == 0
+
+
+def test_admit_releases_the_slot_when_the_block_raises():
+    service = single_slot_service()
+
+    with pytest.raises(RuntimeError), service.admit():
+        raise RuntimeError("request failed after admission")
+
+    assert service.pending == 0
+
+
+def test_admit_raises_queue_full_error_at_capacity():
+    service = single_slot_service()
+
+    with service.admit(), service.admit():
+        with pytest.raises(QueueFullError), service.admit():
+            pass
+
+        assert service.pending == 2
+
+
+@pytest.mark.anyio
+async def test_process_admitted_runs_inside_the_existing_reservation():
+    service = single_slot_service()
+
+    with service.admit(), service.admit():
+        result = await service.process_admitted(PDF_BYTES)
+
+        assert service.pending == 2
+
+    assert result == ExtractionResult(content="Hello PDF", page_count=1)
+    assert service.pending == 0
+
+
+@pytest.mark.anyio
+async def test_extract_returns_503_without_reading_body_when_queue_is_full(pdf_service):
+    body_was_read = False
+
+    async def body() -> AsyncIterator[bytes]:
+        nonlocal body_was_read
+        body_was_read = True
+        yield multipart_body(HELLO_PDF)
+
+    with pdf_service.admit(), pdf_service.admit():
+        async with asgi_client() as client:
+            response = await client.post("/extract", content=body(), headers=MULTIPART_HEADERS)
+
+        assert pdf_service.pending == 2
+
+    assert response.status_code == 503
+    assert response.headers["retry-after"] == "1"
+    assert not body_was_read
+
+
+@pytest.mark.anyio
+async def test_extract_holds_a_reservation_while_reading_the_body(pdf_service):
+    pending_when_body_is_read: list[int] = []
+
+    async def body() -> AsyncIterator[bytes]:
+        pending_when_body_is_read.append(pdf_service.pending)
+        yield multipart_body(HELLO_PDF)
+
+    async with asgi_client() as client:
+        response = await client.post("/extract", content=body(), headers=MULTIPART_HEADERS)
+
+    assert response.status_code == 200
+    assert response.json() == {"content": "Hello PDF", "page_count": 1}
+    assert pending_when_body_is_read == [1]
+    assert pdf_service.pending == 0
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("body", "expected_status"),
+    [
+        pytest.param(multipart_body(HELLO_PDF, content_type="text/plain"), 415, id="mime"),
+        pytest.param(multipart_body(HELLO_PDF + b"\n"), 413, id="size"),
+        pytest.param(multipart_body(b"not a pdf"), 400, id="invalid-pdf"),
+        pytest.param(multipart_body(HELLO_PDF, field="other"), 422, id="missing-file"),
+    ],
+)
+async def test_extract_releases_the_reservation_when_the_upload_is_rejected(
+    pdf_service, body, expected_status
+):
+    async with asgi_client() as client:
+        response = await client.post("/extract", content=body, headers=MULTIPART_HEADERS)
+
+    assert response.status_code == expected_status
+    assert pdf_service.pending == 0
