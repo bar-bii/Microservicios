@@ -40,6 +40,9 @@ uv run python tests/stress/generate_corpus.py >/dev/null
 {
   echo "mode=$MODE"
   echo "replicas=$REPLICAS"
+  echo "extraction_executor=${EXTRACTION_EXECUTOR:-default}"
+  echo "worker_pool_size=${WORKER_POOL_SIZE:-default}"
+  echo "web_concurrency=${WEB_CONCURRENCY:-default}"
   echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "host=$(uname -a)"
   echo "cpus=$(getconf _NPROCESSORS_ONLN)"
@@ -88,6 +91,7 @@ run_scenario() {
   wait "$monitor_pid" 2>/dev/null || true
   monitor_pid=""
 
+  docker compose logs --no-color >"$RESULTS_DIR/compose-logs-$scenario.log" 2>&1 || true
   docker compose down --remove-orphans >/dev/null 2>&1
   echo "$MODE/$scenario: exit=$exit_code, resultados en $RESULTS_DIR"
 }

@@ -37,9 +37,11 @@ services:
     environment:
       PORT: "8000"
       PYTHONUNBUFFERED: "1"
-      WORKER_POOL_SIZE: "4"
-      MAX_QUEUE_SIZE: "100"
+      WORKER_POOL_SIZE: "${WORKER_POOL_SIZE:-4}"
+      MAX_QUEUE_SIZE: "${MAX_QUEUE_SIZE:-100}"
       MAX_UPLOAD_BYTES: "15728640"
+      EXTRACTION_EXECUTOR: "${EXTRACTION_EXECUTOR:-thread}"
+      WEB_CONCURRENCY: "${WEB_CONCURRENCY:-1}"
     labels:
       - traefik.enable=true
       - traefik.docker.network=pdf_net
