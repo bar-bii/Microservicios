@@ -35,6 +35,8 @@ Context for the project's next phase (assignment brief, implemented incrementall
 - Límites por réplica: `1.0` CPU y `1 GB` de RAM (reservas `0.5` CPU / `512 MB`).
 - Verificación end-to-end: `tests/infra/smoke_routing.sh`.
 
+- Resultados baseline vs 5 réplicas y análisis de cuello de botella: `docs/report.md`.
+
 ### Observability
 - La app emite un log JSON por request a stdout con `timestamp`, `method`, `path`, `status`, `duration_ms` y `replica` (hostname del contenedor):
   ```bash
