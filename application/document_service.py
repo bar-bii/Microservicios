@@ -1,8 +1,10 @@
 import asyncio
+import multiprocessing
 from collections.abc import Iterator
+from concurrent.futures import Executor, ProcessPoolExecutor
 from contextlib import contextmanager
 
-from application.config import ConcurrencyConfig
+from application.config import PROCESS_EXECUTOR, ConcurrencyConfig
 from application.pdf_extractor import ExtractionResult, PDFExtractor
 
 
@@ -10,14 +12,29 @@ class QueueFullError(Exception):
     pass
 
 
+@contextmanager
+def extraction_executor(config: ConcurrencyConfig) -> Iterator[Executor | None]:
+    if config.executor != PROCESS_EXECUTOR:
+        yield None
+        return
+
+    with ProcessPoolExecutor(
+        max_workers=config.worker_pool_size,
+        mp_context=multiprocessing.get_context("spawn"),
+    ) as pool:
+        yield pool
+
+
 class DocumentService:
     def __init__(
         self,
         extractor: PDFExtractor,
         config: ConcurrencyConfig | None = None,
+        executor: Executor | None = None,
     ) -> None:
         self._extractor = extractor
         self._config = config or ConcurrencyConfig.from_env()
+        self._executor = executor
         self._workers = asyncio.Semaphore(self._config.worker_pool_size)
         self._pending = 0
 
@@ -42,7 +59,14 @@ class DocumentService:
 
     async def process_admitted(self, pdf_bytes: bytes) -> ExtractionResult:
         async with self._workers:
-            return await asyncio.to_thread(self._extractor.extract, pdf_bytes)
+            if self._executor is None:
+                return await asyncio.to_thread(self._extractor.extract, pdf_bytes)
+
+            return await asyncio.get_running_loop().run_in_executor(
+                self._executor,
+                self._extractor.extract,
+                pdf_bytes,
+            )
 
     async def process(self, pdf_bytes: bytes) -> ExtractionResult:
         with self.admit():

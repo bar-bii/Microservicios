@@ -4,6 +4,9 @@ from dataclasses import dataclass
 DEFAULT_WORKER_POOL_SIZE = 4
 DEFAULT_MAX_QUEUE_SIZE = 100
 DEFAULT_MAX_UPLOAD_BYTES = 15 * 1024 * 1024
+THREAD_EXECUTOR = "thread"
+PROCESS_EXECUTOR = "process"
+EXECUTORS = (THREAD_EXECUTOR, PROCESS_EXECUTOR)
 
 
 def positive_int_from_env(name: str, default: int) -> int:
@@ -22,10 +25,19 @@ def positive_int_from_env(name: str, default: int) -> int:
     return value
 
 
+def executor_from_env(name: str, default: str) -> str:
+    value = os.getenv(name, default)
+    if value not in EXECUTORS:
+        raise ValueError(f"{name} must be one of: {', '.join(EXECUTORS)}")
+
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class ConcurrencyConfig:
     worker_pool_size: int = DEFAULT_WORKER_POOL_SIZE
     max_queue_size: int = DEFAULT_MAX_QUEUE_SIZE
+    executor: str = THREAD_EXECUTOR
 
     @property
     def capacity(self) -> int:
@@ -42,6 +54,7 @@ class ConcurrencyConfig:
                 "MAX_QUEUE_SIZE",
                 DEFAULT_MAX_QUEUE_SIZE,
             ),
+            executor=executor_from_env("EXTRACTION_EXECUTOR", THREAD_EXECUTOR),
         )
 
 
