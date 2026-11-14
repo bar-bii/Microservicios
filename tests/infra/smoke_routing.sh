@@ -10,25 +10,12 @@ EXPECTED_REPLICAS="${EXPECTED_REPLICAS:-5}"
 EXPECTED_NANOCPUS="${EXPECTED_NANOCPUS:-1000000000}"
 EXPECTED_MEMORY="${EXPECTED_MEMORY:-1073741824}"
 
-fail() {
-  echo "FAIL: $*" >&2
-  exit 1
-}
+source "$ROOT_DIR/tests/infra/common.sh"
 
-cleanup() {
-  docker compose down --remove-orphans >/dev/null 2>&1 || true
-}
 trap cleanup EXIT
+start_stack
 
-docker compose config >/dev/null
-docker compose up -d --build
-
-for _ in $(seq 1 60); do
-  if curl -fsS "$BASE_URL/health" >/dev/null 2>&1; then
-    break
-  fi
-  sleep 1
-done
+wait_for_health "$BASE_URL" || fail "Traefik no responde en $BASE_URL"
 
 health="$(curl -fsS "$BASE_URL/health")" || fail "Traefik no responde en $BASE_URL"
 [[ "$health" == '{"status":"ok"}' ]] || fail "health inesperado: $health"
