@@ -25,4 +25,4 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn presentation.main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "uvicorn presentation.main:app --host 0.0.0.0 --port ${PORT} --no-access-log"]
