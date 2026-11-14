@@ -4,12 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from starlette.datastructures import UploadFile
+from starlette.requests import ClientDisconnect
 
 from application.config import UploadConfig
 from application.document_service import DocumentService
 from application.pdf_extractor import InvalidPDFError
 
 PDF_MIME_TYPE = "application/pdf"
+CLIENT_CLOSED_REQUEST = 499
 FILE_FIELD = "file"
 MISSING_FILE_ERROR = {
     "type": "missing",
@@ -48,15 +50,24 @@ def get_upload_config() -> UploadConfig:
 
 
 async def read_pdf_upload(request: Request, max_upload_bytes: int) -> bytes:
-    async with request.form() as form:
-        file = form.get(FILE_FIELD)
-        if not isinstance(file, UploadFile):
-            raise RequestValidationError([MISSING_FILE_ERROR])
+    try:
+        async with request.form() as form:
+            file = form.get(FILE_FIELD)
+            if not isinstance(file, UploadFile):
+                raise RequestValidationError([MISSING_FILE_ERROR])
 
-        if file.content_type != PDF_MIME_TYPE:
-            raise HTTPException(status_code=415, detail=f"uploaded file must be {PDF_MIME_TYPE}")
+            if file.content_type != PDF_MIME_TYPE:
+                raise HTTPException(
+                    status_code=415,
+                    detail=f"uploaded file must be {PDF_MIME_TYPE}",
+                )
 
-        pdf_bytes = await file.read(max_upload_bytes + 1)
+            pdf_bytes = await file.read(max_upload_bytes + 1)
+    except ClientDisconnect as exc:
+        raise HTTPException(
+            status_code=CLIENT_CLOSED_REQUEST,
+            detail="client closed request",
+        ) from exc
 
     if len(pdf_bytes) > max_upload_bytes:
         raise HTTPException(status_code=413, detail="uploaded file exceeds size limit")
