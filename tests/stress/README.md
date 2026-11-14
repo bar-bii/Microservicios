@@ -8,6 +8,7 @@ servicio contra los benchmarks de referencia.
 ```
 tests/stress/
 ├── generate_corpus.py     # genera los 4 PDFs deterministas
+├── run_benchmark.sh       # baseline/scaled: stack + k6 + Vegeta + docker stats
 ├── run_k6.sh              # ejecuta el escenario k6 con imagen pineada
 ├── run_vegeta.sh          # ejecuta el escenario Vegeta con imagen pineada
 ├── pdfs/                  # corpus generado (ignorado por Git salvo README/.gitkeep)
@@ -44,8 +45,18 @@ mismos hashes.
 | `make stress-baseline` | 1 réplica; resultados en `tests/stress/results/baseline`. |
 | `make stress-scaled` | 5 réplicas; resultados en `tests/stress/results/scaled`. |
 
-`stress-baseline` y `stress-scaled` generan el corpus, levantan el stack y
-ejecutan ambos escenarios. Al terminar, bajar el stack con `make stress-down`.
+`stress-baseline` y `stress-scaled` usan `run_benchmark.sh`: generan el corpus,
+levantan el stack con `--scale app=N`, ejecutan k6 y Vegeta con una pila limpia
+para cada escenario, recolectan `docker stats` y bajan el stack al terminar.
+
+Cada directorio de resultados incluye:
+
+- `k6-spike-summary.json`, `k6-run.log` y `k6-exit-code`.
+- `vegeta-report.txt`, `vegeta-report.json`, `vegeta-plot.html`, `vegeta-run.log`
+  y `vegeta-exit-code`.
+- `docker-stats-{k6,vegeta}.txt` con CPU/RAM por contenedor cada 2 s.
+- `metadata.txt` con fecha, CPU, memoria, kernel y versiones de Docker/Compose.
+- `compose-up-{k6,vegeta}.log`.
 
 ## Variables
 
