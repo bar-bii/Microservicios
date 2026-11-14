@@ -314,3 +314,40 @@ async def test_extract_releases_the_reservation_when_the_upload_is_rejected(
 
     assert response.status_code == expected_status
     assert pdf_service.pending == 0
+
+
+@pytest.mark.anyio
+async def test_extract_answers_499_when_the_client_disconnects_mid_upload(pdf_service):
+    incoming = iter(
+        [
+            {"type": "http.request", "body": multipart_body(HELLO_PDF)[:64], "more_body": True},
+            {"type": "http.disconnect"},
+        ]
+    )
+    sent: list[dict] = []
+
+    async def receive() -> dict:
+        return next(incoming)
+
+    async def send(message: dict) -> None:
+        sent.append(message)
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/extract",
+        "raw_path": b"/extract",
+        "query_string": b"",
+        "root_path": "",
+        "headers": [(b"content-type", MULTIPART_HEADERS["Content-Type"].encode("ascii"))],
+        "client": ("testclient", 50000),
+        "server": ("test", 80),
+    }
+
+    await app(scope, receive, send)
+
+    assert sent[0]["status"] == 499
+    assert pdf_service.pending == 0
