@@ -8,27 +8,12 @@ BASE_URL="${BASE_URL:-http://localhost:8080}"
 DASHBOARD_URL="${DASHBOARD_URL:-http://127.0.0.1:8081/dashboard/}"
 PDF="${PDF:-tests/application/fixtures/hello.pdf}"
 
-fail() {
-  echo "FAIL: $*" >&2
-  exit 1
-}
+source "$ROOT_DIR/tests/infra/common.sh"
 
-cleanup() {
-  docker compose down --remove-orphans >/dev/null 2>&1 || true
-}
 trap cleanup EXIT
+start_stack --scale app=5 >/dev/null
 
-docker compose config >/dev/null
-docker compose up -d --build --scale app=5 >/dev/null
-
-for _ in $(seq 1 60); do
-  if curl -fsS "$BASE_URL/health" >/dev/null 2>&1; then
-    break
-  fi
-  sleep 1
-done
-
-curl -fsS "$BASE_URL/health" >/dev/null || fail "Traefik no responde en $BASE_URL"
+wait_for_health "$BASE_URL" || fail "Traefik no responde en $BASE_URL"
 for _ in $(seq 1 10); do
   curl -fsS -X POST "$BASE_URL/extract" -F "file=@${PDF};type=application/pdf" >/dev/null
 done
