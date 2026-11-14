@@ -23,8 +23,8 @@ help:
 	@echo "  stress-down     Detiene y elimina el stack."
 	@echo "  stress-k6       Ejecuta el escenario k6 (K6_IMAGE, K6_SCRIPT, K6_STRICT, BASE_URL, RESULTS_DIR)."
 	@echo "  stress-vegeta   Ejecuta el escenario Vegeta (VEGETA_IMAGE, VEGETA_RATE, VEGETA_DURATION, VEGETA_TIMEOUT)."
-	@echo "  stress-baseline 1 réplica; resultados en tests/stress/results/baseline."
-	@echo "  stress-scaled   5 réplicas; resultados en tests/stress/results/scaled."
+	@echo "  stress-baseline 1 réplica + stats; resultados en tests/stress/results/baseline."
+	@echo "  stress-scaled   5 réplicas + stats; resultados en tests/stress/results/scaled."
 
 stress-corpus:
 	uv run python tests/stress/generate_corpus.py
@@ -43,10 +43,10 @@ stress-vegeta: stress-corpus
 
 stress-run: stress-corpus stress-up stress-k6 stress-vegeta
 
-stress-baseline: REPLICAS := 1
 stress-baseline: RESULTS_DIR := tests/stress/results/baseline
-stress-baseline: stress-run
+stress-baseline:
+	tests/stress/run_benchmark.sh baseline
 
-stress-scaled: REPLICAS := 5
 stress-scaled: RESULTS_DIR := tests/stress/results/scaled
-stress-scaled: stress-run
+stress-scaled:
+	tests/stress/run_benchmark.sh scaled
