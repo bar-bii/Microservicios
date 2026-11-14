@@ -35,6 +35,8 @@ Context for the project's next phase (assignment brief, implemented incrementall
 - Límites por réplica: `1.0` CPU y `1 GB` de RAM (reservas `0.5` CPU / `512 MB`).
 - Verificación end-to-end: `tests/infra/smoke_routing.sh`.
 
+- Resultados baseline vs 5 réplicas y análisis de cuello de botella: `docs/report.md`.
+
 ### New microservice contract
 - Dedicated service exposing `POST /extract`, receiving the raw PDF binary (`multipart/form-data` or a direct binary body).
 - Response: `200 OK`, `application/json`, shaped as `{ "content": "<extracted text>", "page_count": <int> }`.
