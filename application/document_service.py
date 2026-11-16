@@ -37,25 +37,39 @@ class DocumentService:
         self._executor = executor
         self._workers = asyncio.Semaphore(self._config.worker_pool_size)
         self._pending = 0
+        self._pending_bytes = 0
 
     @property
     def pending(self) -> int:
         return self._pending
 
     @property
+    def pending_bytes(self) -> int:
+        return self._pending_bytes
+
+    @property
     def capacity(self) -> int:
         return self._config.capacity
 
     @contextmanager
-    def admit(self) -> Iterator[None]:
-        if self._pending >= self.capacity:
+    def admit(self, size: int = 0) -> Iterator[None]:
+        if self._pending >= self.capacity or not self._fits(size):
             raise QueueFullError("extraction queue is full")
 
         self._pending += 1
+        self._pending_bytes += size
         try:
             yield
         finally:
             self._pending -= 1
+            self._pending_bytes -= size
+
+    def _fits(self, size: int) -> bool:
+        limit = self._config.max_queue_bytes
+        if limit is None or self._pending == 0:
+            return True
+
+        return self._pending_bytes + size <= limit
 
     async def process_admitted(self, pdf_bytes: bytes) -> ExtractionResult:
         async with self._workers:
@@ -69,5 +83,5 @@ class DocumentService:
             )
 
     async def process(self, pdf_bytes: bytes) -> ExtractionResult:
-        with self.admit():
+        with self.admit(len(pdf_bytes)):
             return await self.process_admitted(pdf_bytes)

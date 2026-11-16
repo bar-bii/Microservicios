@@ -25,6 +25,13 @@ def positive_int_from_env(name: str, default: int) -> int:
     return value
 
 
+def optional_positive_int_from_env(name: str) -> int | None:
+    if not os.getenv(name):
+        return None
+
+    return positive_int_from_env(name, 0)
+
+
 def executor_from_env(name: str, default: str) -> str:
     value = os.getenv(name, default)
     if value not in EXECUTORS:
@@ -38,6 +45,7 @@ class ConcurrencyConfig:
     worker_pool_size: int = DEFAULT_WORKER_POOL_SIZE
     max_queue_size: int = DEFAULT_MAX_QUEUE_SIZE
     executor: str = THREAD_EXECUTOR
+    max_queue_bytes: int | None = None
 
     @property
     def capacity(self) -> int:
@@ -55,6 +63,7 @@ class ConcurrencyConfig:
                 DEFAULT_MAX_QUEUE_SIZE,
             ),
             executor=executor_from_env("EXTRACTION_EXECUTOR", THREAD_EXECUTOR),
+            max_queue_bytes=optional_positive_int_from_env("MAX_QUEUE_BYTES"),
         )
 
 
