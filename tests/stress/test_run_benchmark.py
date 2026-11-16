@@ -59,6 +59,7 @@ VARIANT_VARIABLES = (
     "WORKER_POOL_SIZE",
     "MAX_QUEUE_SIZE",
     "WEB_CONCURRENCY",
+    "LB_STRATEGY",
 )
 
 
@@ -149,6 +150,7 @@ def test_run_benchmark_records_the_concurrency_variant(fake_repo):
             "WORKER_POOL_SIZE": "2",
             "MAX_QUEUE_SIZE": "30",
             "WEB_CONCURRENCY": "3",
+            "LB_STRATEGY": "p2c",
         },
     )
 
@@ -158,6 +160,7 @@ def test_run_benchmark_records_the_concurrency_variant(fake_repo):
     assert "worker_pool_size=2" in metadata
     assert "max_queue_size=30" in metadata
     assert "web_concurrency=3" in metadata
+    assert "lb_strategy=p2c" in metadata
 
 
 def test_run_benchmark_records_unset_variant_variables_as_default(fake_repo):
@@ -171,6 +174,7 @@ def test_run_benchmark_records_unset_variant_variables_as_default(fake_repo):
     assert "worker_pool_size=default" in metadata
     assert "max_queue_size=default" in metadata
     assert "web_concurrency=default" in metadata
+    assert "lb_strategy=default" in metadata
 
 
 def test_run_benchmark_saves_container_logs_per_scenario(fake_repo):
