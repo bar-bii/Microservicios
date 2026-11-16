@@ -30,8 +30,7 @@ class PdfiumPDFExtractor:
             raise InvalidPDFError("uploaded file is not a valid PDF")
 
         try:
-            with PDFIUM_LOCK:
-                pages = _read_pages(pdf_bytes)
+            pages = _read_pages(pdf_bytes)
         except pdfium.PdfiumError as exc:
             raise InvalidPDFError("uploaded file is not a valid PDF") from exc
 
@@ -42,10 +41,23 @@ class PdfiumPDFExtractor:
 
 
 def _read_pages(pdf_bytes: bytes) -> list[str]:
-    with closing(pdfium.PdfDocument(pdf_bytes)) as document:
-        return [_read_page(document, index) for index in range(len(document))]
+    with PDFIUM_LOCK:
+        document = pdfium.PdfDocument(pdf_bytes)
+        page_count = len(document)
+
+    try:
+        return [_read_page(document, index) for index in range(page_count)]
+    finally:
+        with PDFIUM_LOCK:
+            document.close()
 
 
 def _read_page(document: pdfium.PdfDocument, index: int) -> str:
-    with closing(document[index]) as page, closing(page.get_textpage()) as text_page:
-        return text_page.get_text_range().replace(PDFIUM_LINE_BREAK, "\n")
+    with (
+        PDFIUM_LOCK,
+        closing(document[index]) as page,
+        closing(page.get_textpage()) as text_page,
+    ):
+        text = text_page.get_text_range()
+
+    return text.replace(PDFIUM_LINE_BREAK, "\n")
