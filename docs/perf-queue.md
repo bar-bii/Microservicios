@@ -113,7 +113,8 @@ cliente), y se puede cambiar por entorno sin tocar el código.
 2. Reemplazar el tamaño fijo por un descarte según el tiempo de espera, para
    que el límite no dependa del tamaño de los PDFs.
 3. Evaluar si otra estrategia de balanceo en Traefik reduce el desbalance del
-   hallazgo 5, lo que permitiría una cola más corta.
+   hallazgo 5, lo que permitiría una cola más corta. Hecho en
+   `docs/perf-balancing.md` (#46): el despliegue usa `p2c`.
 
 ## 8. Reproducción
 
