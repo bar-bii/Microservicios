@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from application.config import ConcurrencyConfig
 from application.document_service import DocumentService, QueueFullError, extraction_executor
-from application.pdf_extractor import PypdfPDFExtractor
+from application.pdf_extractor import PdfiumPDFExtractor
 from presentation.access_log import AccessLogMiddleware
 from presentation.routers.extract import router as extract_router
 
@@ -15,7 +15,7 @@ from presentation.routers.extract import router as extract_router
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     config = ConcurrencyConfig.from_env()
     with extraction_executor(config) as executor:
-        app.state.document_service = DocumentService(PypdfPDFExtractor(), config, executor)
+        app.state.document_service = DocumentService(PdfiumPDFExtractor(), config, executor)
         yield
 
 
