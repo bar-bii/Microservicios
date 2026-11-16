@@ -14,12 +14,14 @@ QUEUE_RESULTS_DIR ?= tests/stress/results/queue
 QUEUE_SIZES ?= 20 30 40 60 100
 QUEUE_BYTES_RESULTS_DIR ?= tests/stress/results/queue-bytes
 QUEUE_MEGABYTES ?= 100 130 160 200
+ORDER_RESULTS_DIR ?= tests/stress/results/order
+QUEUE_ORDERS ?= fifo hrrn
 LB_RESULTS_DIR ?= tests/stress/results/lb
 LB_STRATEGIES ?= wrr p2c leasttime
 
 export BASE_URL RESULTS_DIR K6_IMAGE K6_STRICT VEGETA_IMAGE VEGETA_RATE VEGETA_DURATION VEGETA_TIMEOUT
 
-.PHONY: help stress-corpus stress-up stress-down stress-k6 stress-vegeta stress-run stress-baseline stress-scaled stress-workers stress-queue stress-queue-bytes stress-lb
+.PHONY: help stress-corpus stress-up stress-down stress-k6 stress-vegeta stress-run stress-baseline stress-scaled stress-workers stress-queue stress-queue-bytes stress-order stress-lb
 
 .NOTPARALLEL: stress-run
 
@@ -35,6 +37,7 @@ help:
 	@echo "  stress-workers  Compara hilos, procesos y workers de uvicorn con 1 réplica (WORKERS_RESULTS_DIR)."
 	@echo "  stress-queue    Compara tamaños de cola (QUEUE_SIZES) con 5 réplicas (QUEUE_RESULTS_DIR)."
 	@echo "  stress-queue-bytes Compara límites de cola en MiB (QUEUE_MEGABYTES) con 5 réplicas (QUEUE_BYTES_RESULTS_DIR)."
+	@echo "  stress-order    Compara órdenes de atención de la cola (QUEUE_ORDERS) con 5 réplicas (ORDER_RESULTS_DIR)."
 	@echo "  stress-lb       Compara estrategias de balanceo (LB_STRATEGIES) con 5 réplicas (LB_RESULTS_DIR)."
 
 stress-corpus:
@@ -77,6 +80,11 @@ stress-queue:
 stress-queue-bytes:
 	for megabytes in $(QUEUE_MEGABYTES); do \
 		MAX_QUEUE_BYTES=$$((megabytes * 1048576)) RESULTS_DIR=$(QUEUE_BYTES_RESULTS_DIR)/mb-$$megabytes tests/stress/run_benchmark.sh scaled || exit 1; \
+	done
+
+stress-order:
+	for order in $(QUEUE_ORDERS); do \
+		QUEUE_ORDER=$$order RESULTS_DIR=$(ORDER_RESULTS_DIR)/$$order tests/stress/run_benchmark.sh scaled || exit 1; \
 	done
 
 stress-lb:

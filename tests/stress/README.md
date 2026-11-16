@@ -81,12 +81,15 @@ Cada directorio de resultados incluye:
 | `WORKER_POOL_SIZE` | `4` | Extracciones simultáneas por proceso del servicio. |
 | `MAX_QUEUE_SIZE` | ver `docker-compose.yml` | Requests en espera por proceso del servicio antes de responder `503`. |
 | `MAX_QUEUE_BYTES` | ver `docker-compose.yml` | Bytes admitidos a la vez por proceso del servicio, según el `Content-Length` de cada request. Vacío = sin límite. |
+| `QUEUE_ORDER` | ver `docker-compose.yml` | Orden de atención de la cola: `fifo` o `hrrn`. |
 | `WEB_CONCURRENCY` | `1` | Procesos de uvicorn por réplica. |
 | `WORKERS_RESULTS_DIR` | `tests/stress/results/workers` | Resultados de `make stress-workers`. |
 | `QUEUE_SIZES` | `20 30 40 60 100` | Tamaños que recorre `make stress-queue`. |
 | `QUEUE_RESULTS_DIR` | `tests/stress/results/queue` | Resultados de `make stress-queue`. |
 | `QUEUE_MEGABYTES` | `100 130 160 200` | Límites en MiB que recorre `make stress-queue-bytes`. |
 | `QUEUE_BYTES_RESULTS_DIR` | `tests/stress/results/queue-bytes` | Resultados de `make stress-queue-bytes`. |
+| `QUEUE_ORDERS` | `fifo hrrn` | Órdenes que recorre `make stress-order`. |
+| `ORDER_RESULTS_DIR` | `tests/stress/results/order` | Resultados de `make stress-order`. |
 | `LB_STRATEGY` | ver `docker-compose.yml` | Estrategia del balanceador de Traefik: `wrr`, `p2c`, `hrw` o `leasttime`. |
 | `LB_STRATEGIES` | `wrr p2c leasttime` | Estrategias que recorre `make stress-lb`. |
 | `LB_RESULTS_DIR` | `tests/stress/results/lb` | Resultados de `make stress-lb`. |
@@ -128,6 +131,12 @@ el valor elegido están en `docs/perf-queue.md`.
 `make stress-queue-bytes` corre `run_benchmark.sh scaled` (5 réplicas) una vez
 por cada valor de `QUEUE_MEGABYTES`, cambiando solo `MAX_QUEUE_BYTES`. Los
 resultados y el valor elegido están en `docs/perf-queue-bytes.md`.
+
+## Comparación de órdenes de la cola
+
+`make stress-order` corre `run_benchmark.sh scaled` (5 réplicas) una vez por
+cada valor de `QUEUE_ORDERS`, cambiando solo `QUEUE_ORDER`. Los resultados y el
+orden elegido están en `docs/perf-queue-order.md`.
 
 ## Comparación de estrategias de balanceo
 

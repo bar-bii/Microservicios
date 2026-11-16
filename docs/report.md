@@ -201,6 +201,12 @@ anteriores. El detalle del harness está en `tests/stress/README.md`.
 - **#47: límite de la cola por bytes** (`MAX_QUEUE_BYTES`), además del tope
   por cantidad. Con la cola en orden de llegada no mejora el resultado y queda
   apagado; la medición está en `docs/perf-queue-bytes.md`.
+- **#48: la cola atiende con HRRN** (`QUEUE_ORDER=hrrn`) y se limita a 130 MiB
+  (`MAX_QUEUE_BYTES`); `MAX_QUEUE_SIZE` vuelve a 100 como tope de cantidad.
+  Con 5 réplicas, el success de Vegeta pasó de 8,7–10,8 % a 44,0–47,8 % y las
+  requests de k6 de 445–540 a 1.640–2.029, a costa de más espera para los PDFs
+  más grandes. La comparación está en `docs/perf-queue-order.md`. El semáforo y
+  la cola FIFO que describen las secciones 1 y 7 son la configuración anterior.
 - **Corrección a la sección 4.** Al repetir el baseline de 1 réplica con el
   access log de Traefik, todos los `503` del spike de k6 tenían `OriginStatus=0`:
   los generó Traefik al quedarse sin réplica disponible, no el backpressure de

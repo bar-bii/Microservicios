@@ -115,9 +115,9 @@ No hubo `503` de Traefik, trazas ni procesos caídos en ninguna corrida.
 El mecanismo queda en el código y `MAX_QUEUE_BYTES` queda **sin valor** en
 `docker-compose.yml`: con la cola en orden de llegada no mejora el resultado.
 
-El valor del despliegue se decide en `docs/perf-queue-order.md` (#48), donde
+El valor del despliegue se decidió en `docs/perf-queue-order.md` (#48), donde
 el límite en bytes se combina con un orden de atención que deja pasar a los
-PDFs chicos.
+PDFs chicos: 130 MiB con `QUEUE_ORDER=hrrn`.
 
 ## 7. Límites
 
