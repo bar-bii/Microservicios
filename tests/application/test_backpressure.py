@@ -94,7 +94,7 @@ def test_concurrency_config_uses_defaults(monkeypatch):
     assert config.capacity == 104
 
 
-@pytest.mark.parametrize("name", ["WORKER_POOL_SIZE", "MAX_QUEUE_SIZE"])
+@pytest.mark.parametrize("name", ["WORKER_POOL_SIZE", "MAX_QUEUE_SIZE", "MAX_QUEUE_BYTES"])
 @pytest.mark.parametrize("raw_value", ["0", "-1", "abc"])
 def test_concurrency_config_rejects_invalid_values(monkeypatch, name, raw_value):
     monkeypatch.delenv("WORKER_POOL_SIZE", raising=False)
@@ -103,6 +103,21 @@ def test_concurrency_config_rejects_invalid_values(monkeypatch, name, raw_value)
 
     with pytest.raises(ValueError, match=name):
         ConcurrencyConfig.from_env()
+
+
+def test_concurrency_config_reads_the_byte_limit(monkeypatch):
+    monkeypatch.setenv("MAX_QUEUE_BYTES", "1048576")
+
+    assert ConcurrencyConfig.from_env().max_queue_bytes == 1048576
+
+
+@pytest.mark.parametrize("raw_value", [None, ""])
+def test_concurrency_config_has_no_byte_limit_when_unset_or_empty(monkeypatch, raw_value):
+    monkeypatch.delenv("MAX_QUEUE_BYTES", raising=False)
+    if raw_value is not None:
+        monkeypatch.setenv("MAX_QUEUE_BYTES", raw_value)
+
+    assert ConcurrencyConfig.from_env().max_queue_bytes is None
 
 
 @pytest.mark.anyio
@@ -346,3 +361,169 @@ async def test_extract_answers_499_when_the_client_disconnects_mid_upload(pdf_se
 
     assert sent[0]["status"] == 499
     assert pdf_service.pending == 0
+
+
+def byte_limited_service(max_queue_bytes: int) -> DocumentService:
+    return DocumentService(
+        FakeExtractor(),
+        config=ConcurrencyConfig(
+            worker_pool_size=1,
+            max_queue_size=10,
+            max_queue_bytes=max_queue_bytes,
+        ),
+    )
+
+
+def test_admit_rejects_a_request_that_does_not_fit_in_the_byte_limit():
+    service = byte_limited_service(100)
+
+    with service.admit(60):
+        with pytest.raises(QueueFullError), service.admit(41):
+            pass
+
+        assert service.pending == 1
+        assert service.pending_bytes == 60
+
+
+def test_admit_accepts_a_smaller_request_that_still_fits():
+    service = byte_limited_service(100)
+
+    with service.admit(60), service.admit(40):
+        assert service.pending_bytes == 100
+
+
+def test_admit_releases_the_bytes_when_the_block_exits():
+    service = byte_limited_service(100)
+
+    with service.admit(100):
+        pass
+
+    with service.admit(100):
+        assert service.pending_bytes == 100
+
+    assert service.pending_bytes == 0
+
+
+def test_admit_releases_the_bytes_when_the_block_raises():
+    service = byte_limited_service(100)
+
+    with pytest.raises(RuntimeError), service.admit(100):
+        raise RuntimeError("request failed after admission")
+
+    assert service.pending_bytes == 0
+
+
+def test_an_idle_service_admits_a_request_larger_than_the_byte_limit():
+    service = byte_limited_service(100)
+
+    with service.admit(500):
+        assert service.pending_bytes == 500
+
+        with pytest.raises(QueueFullError), service.admit(1):
+            pass
+
+
+def test_admit_ignores_sizes_without_a_byte_limit():
+    service = single_slot_service()
+
+    with service.admit(10**12), service.admit(10**12):
+        assert service.pending == 2
+
+
+@pytest.mark.anyio
+async def test_process_counts_the_pdf_bytes_against_the_limit(controlled_thread):
+    gate, _ = controlled_thread
+    service = byte_limited_service(len(PDF_BYTES))
+
+    accepted = asyncio.create_task(service.process(PDF_BYTES))
+    await wait_until_pending(service, 1)
+
+    assert service.pending_bytes == len(PDF_BYTES)
+    with pytest.raises(QueueFullError):
+        await service.process(PDF_BYTES)
+
+    gate.set()
+    await accepted
+    assert service.pending_bytes == 0
+
+
+@pytest.fixture
+def byte_limited_pdf_service() -> Iterator[DocumentService]:
+    service = DocumentService(
+        PdfiumPDFExtractor(),
+        config=ConcurrencyConfig(worker_pool_size=1, max_queue_size=10, max_queue_bytes=10_000),
+    )
+    app.dependency_overrides[get_document_service] = lambda: service
+    app.dependency_overrides[get_upload_config] = lambda: UploadConfig(max_upload_bytes=4_000)
+    try:
+        yield service
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.anyio
+async def test_extract_returns_503_without_reading_body_when_declared_size_does_not_fit(
+    byte_limited_pdf_service,
+):
+    service = byte_limited_pdf_service
+    payload = multipart_body(HELLO_PDF)
+    body_was_read = False
+
+    async def body() -> AsyncIterator[bytes]:
+        nonlocal body_was_read
+        body_was_read = True
+        yield payload
+
+    with service.admit(10_000 - len(payload) + 1):
+        async with asgi_client() as client:
+            response = await client.post(
+                "/extract",
+                content=body(),
+                headers={**MULTIPART_HEADERS, "Content-Length": str(len(payload))},
+            )
+
+    assert response.status_code == 503
+    assert response.headers["retry-after"] == "1"
+    assert not body_was_read
+
+
+@pytest.mark.anyio
+async def test_extract_reserves_the_declared_size_while_reading_the_body(
+    byte_limited_pdf_service,
+):
+    service = byte_limited_pdf_service
+    payload = multipart_body(HELLO_PDF)
+    bytes_when_body_is_read: list[int] = []
+
+    async def body() -> AsyncIterator[bytes]:
+        bytes_when_body_is_read.append(service.pending_bytes)
+        yield payload
+
+    async with asgi_client() as client:
+        response = await client.post(
+            "/extract",
+            content=body(),
+            headers={**MULTIPART_HEADERS, "Content-Length": str(len(payload))},
+        )
+
+    assert response.status_code == 200
+    assert bytes_when_body_is_read == [len(payload)]
+    assert service.pending_bytes == 0
+
+
+@pytest.mark.anyio
+async def test_extract_assumes_the_upload_limit_when_the_size_is_not_declared(
+    byte_limited_pdf_service,
+):
+    service = byte_limited_pdf_service
+    bytes_when_body_is_read: list[int] = []
+
+    async def body() -> AsyncIterator[bytes]:
+        bytes_when_body_is_read.append(service.pending_bytes)
+        yield multipart_body(HELLO_PDF)
+
+    async with asgi_client() as client:
+        response = await client.post("/extract", content=body(), headers=MULTIPART_HEADERS)
+
+    assert response.status_code == 200
+    assert bytes_when_body_is_read == [4_000]
