@@ -45,6 +45,7 @@ mismos hashes.
 | `make stress-baseline` | 1 réplica; resultados en `tests/stress/results/baseline`. |
 | `make stress-scaled` | 5 réplicas; resultados en `tests/stress/results/scaled`. |
 | `make stress-workers` | Compara hilos, procesos y workers de uvicorn con 1 réplica; resultados en `tests/stress/results/workers/<variante>`. |
+| `make stress-queue` | Compara tamaños de cola con 5 réplicas; resultados en `tests/stress/results/queue/queue-<tamaño>`. |
 
 `stress-baseline` y `stress-scaled` usan `run_benchmark.sh`: generan el corpus,
 levantan el stack con `--scale app=N`, ejecutan k6 y Vegeta con una pila limpia
@@ -78,8 +79,11 @@ Cada directorio de resultados incluye:
 | `VEGETA_TIMEOUT` | `30s` | Timeout por request. |
 | `EXTRACTION_EXECUTOR` | `thread` | Dónde corre la extracción: `thread` o `process`. |
 | `WORKER_POOL_SIZE` | `4` | Extracciones simultáneas por proceso del servicio. |
+| `MAX_QUEUE_SIZE` | ver `docker-compose.yml` | Requests en espera por proceso del servicio antes de responder `503`. |
 | `WEB_CONCURRENCY` | `1` | Procesos de uvicorn por réplica. |
 | `WORKERS_RESULTS_DIR` | `tests/stress/results/workers` | Resultados de `make stress-workers`. |
+| `QUEUE_SIZES` | `20 30 40 60 100` | Tamaños que recorre `make stress-queue`. |
+| `QUEUE_RESULTS_DIR` | `tests/stress/results/queue` | Resultados de `make stress-queue`. |
 
 Ejemplo:
 
@@ -106,6 +110,12 @@ servicio:
 | `uvicorn-4` | `WEB_CONCURRENCY=4 WORKER_POOL_SIZE=1` |
 
 Los resultados y la recomendación están en `docs/perf-workers.md`.
+
+## Barrido del tamaño de cola
+
+`make stress-queue` corre `run_benchmark.sh scaled` (5 réplicas) una vez por
+cada valor de `QUEUE_SIZES`, cambiando solo `MAX_QUEUE_SIZE`. Los resultados y
+el valor elegido están en `docs/perf-queue.md`.
 
 ## Escenario k6 (spike)
 
