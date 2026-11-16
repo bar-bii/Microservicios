@@ -10,10 +10,12 @@ VEGETA_RATE ?= 50
 VEGETA_DURATION ?= 30s
 VEGETA_TIMEOUT ?= 30s
 WORKERS_RESULTS_DIR ?= tests/stress/results/workers
+QUEUE_RESULTS_DIR ?= tests/stress/results/queue
+QUEUE_SIZES ?= 20 30 40 60 100
 
 export BASE_URL RESULTS_DIR K6_IMAGE K6_STRICT VEGETA_IMAGE VEGETA_RATE VEGETA_DURATION VEGETA_TIMEOUT
 
-.PHONY: help stress-corpus stress-up stress-down stress-k6 stress-vegeta stress-run stress-baseline stress-scaled stress-workers
+.PHONY: help stress-corpus stress-up stress-down stress-k6 stress-vegeta stress-run stress-baseline stress-scaled stress-workers stress-queue
 
 .NOTPARALLEL: stress-run
 
@@ -27,6 +29,7 @@ help:
 	@echo "  stress-baseline 1 réplica + stats; resultados en tests/stress/results/baseline."
 	@echo "  stress-scaled   5 réplicas + stats; resultados en tests/stress/results/scaled."
 	@echo "  stress-workers  Compara hilos, procesos y workers de uvicorn con 1 réplica (WORKERS_RESULTS_DIR)."
+	@echo "  stress-queue    Compara tamaños de cola (QUEUE_SIZES) con 5 réplicas (QUEUE_RESULTS_DIR)."
 
 stress-corpus:
 	uv run python tests/stress/generate_corpus.py
@@ -59,3 +62,8 @@ stress-workers:
 	EXTRACTION_EXECUTOR=process RESULTS_DIR=$(WORKERS_RESULTS_DIR)/processes-4 tests/stress/run_benchmark.sh baseline
 	EXTRACTION_EXECUTOR=process WORKER_POOL_SIZE=1 RESULTS_DIR=$(WORKERS_RESULTS_DIR)/processes-1 tests/stress/run_benchmark.sh baseline
 	WEB_CONCURRENCY=4 WORKER_POOL_SIZE=1 RESULTS_DIR=$(WORKERS_RESULTS_DIR)/uvicorn-4 tests/stress/run_benchmark.sh baseline
+
+stress-queue:
+	for size in $(QUEUE_SIZES); do \
+		MAX_QUEUE_SIZE=$$size RESULTS_DIR=$(QUEUE_RESULTS_DIR)/queue-$$size tests/stress/run_benchmark.sh scaled || exit 1; \
+	done

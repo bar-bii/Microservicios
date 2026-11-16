@@ -32,3 +32,13 @@ def test_makefile_workers_target_runs_every_concurrency_variant():
         assert (
             f"$(WORKERS_RESULTS_DIR)/{variant} tests/stress/run_benchmark.sh baseline" in makefile
         )
+
+
+def test_makefile_queue_target_sweeps_queue_sizes_with_five_replicas():
+    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+
+    assert "QUEUE_SIZES ?= 20 30 40 60 100" in makefile
+    assert (
+        "MAX_QUEUE_SIZE=$$size RESULTS_DIR=$(QUEUE_RESULTS_DIR)/queue-$$size "
+        "tests/stress/run_benchmark.sh scaled"
+    ) in makefile

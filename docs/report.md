@@ -194,6 +194,8 @@ anteriores. El detalle del harness está en `tests/stress/README.md`.
 - **#42: extracción con `pypdfium2`** en lugar de `pypdf`. La comparación
   antes/después está en `docs/perf-extractor.md`; la sección 1 y el cuello de
   botella de la sección 7 describen el extractor anterior.
+- **#44: cola de 40** en lugar de 100 por réplica (`MAX_QUEUE_SIZE` en
+  `docker-compose.yml`). El barrido y la decisión están en `docs/perf-queue.md`.
 - **Corrección a la sección 4.** Al repetir el baseline de 1 réplica con el
   access log de Traefik, todos los `503` del spike de k6 tenían `OriginStatus=0`:
   los generó Traefik al quedarse sin réplica disponible, no el backpressure de

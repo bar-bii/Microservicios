@@ -155,7 +155,8 @@ Se eligió el mutex por página por su ventaja en k6.
 
    Con la cola corta casi desaparecen los timeouts y la memoria baja a menos de
    la mitad, pero en el spike de k6 aparecen 13 rechazos `503`, que rompen el
-   umbral de 1 % de errores. Elegir el tamaño queda fuera de este cambio.
+   umbral de 1 % de errores. Elegir el tamaño queda fuera de este cambio; el
+   barrido y la decisión están en `docs/perf-queue.md`.
 2. Repetir las mediciones con el corpus oficial del enunciado y en un host
    Linux aislado, con más de una pasada por versión.
 3. Priorizar los PDFs chicos antes de que entren al pool de 4 threads: el
