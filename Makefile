@@ -9,10 +9,11 @@ VEGETA_IMAGE ?= peterevans/vegeta:6.9.1
 VEGETA_RATE ?= 50
 VEGETA_DURATION ?= 30s
 VEGETA_TIMEOUT ?= 30s
+WORKERS_RESULTS_DIR ?= tests/stress/results/workers
 
 export BASE_URL RESULTS_DIR K6_IMAGE K6_STRICT VEGETA_IMAGE VEGETA_RATE VEGETA_DURATION VEGETA_TIMEOUT
 
-.PHONY: help stress-corpus stress-up stress-down stress-k6 stress-vegeta stress-run stress-baseline stress-scaled
+.PHONY: help stress-corpus stress-up stress-down stress-k6 stress-vegeta stress-run stress-baseline stress-scaled stress-workers
 
 .NOTPARALLEL: stress-run
 
@@ -25,6 +26,7 @@ help:
 	@echo "  stress-vegeta   Ejecuta el escenario Vegeta (VEGETA_IMAGE, VEGETA_RATE, VEGETA_DURATION, VEGETA_TIMEOUT)."
 	@echo "  stress-baseline 1 réplica + stats; resultados en tests/stress/results/baseline."
 	@echo "  stress-scaled   5 réplicas + stats; resultados en tests/stress/results/scaled."
+	@echo "  stress-workers  Compara hilos, procesos y workers de uvicorn con 1 réplica (WORKERS_RESULTS_DIR)."
 
 stress-corpus:
 	uv run python tests/stress/generate_corpus.py
@@ -50,3 +52,10 @@ stress-baseline:
 stress-scaled: RESULTS_DIR := tests/stress/results/scaled
 stress-scaled:
 	tests/stress/run_benchmark.sh scaled
+
+stress-workers:
+	RESULTS_DIR=$(WORKERS_RESULTS_DIR)/threads-4 tests/stress/run_benchmark.sh baseline
+	WORKER_POOL_SIZE=1 RESULTS_DIR=$(WORKERS_RESULTS_DIR)/threads-1 tests/stress/run_benchmark.sh baseline
+	EXTRACTION_EXECUTOR=process RESULTS_DIR=$(WORKERS_RESULTS_DIR)/processes-4 tests/stress/run_benchmark.sh baseline
+	EXTRACTION_EXECUTOR=process WORKER_POOL_SIZE=1 RESULTS_DIR=$(WORKERS_RESULTS_DIR)/processes-1 tests/stress/run_benchmark.sh baseline
+	WEB_CONCURRENCY=4 WORKER_POOL_SIZE=1 RESULTS_DIR=$(WORKERS_RESULTS_DIR)/uvicorn-4 tests/stress/run_benchmark.sh baseline

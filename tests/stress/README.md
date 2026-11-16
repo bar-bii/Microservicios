@@ -44,6 +44,7 @@ mismos hashes.
 | `make stress-vegeta` | Ejecuta el escenario Vegeta. |
 | `make stress-baseline` | 1 réplica; resultados en `tests/stress/results/baseline`. |
 | `make stress-scaled` | 5 réplicas; resultados en `tests/stress/results/scaled`. |
+| `make stress-workers` | Compara hilos, procesos y workers de uvicorn con 1 réplica; resultados en `tests/stress/results/workers/<variante>`. |
 
 `stress-baseline` y `stress-scaled` usan `run_benchmark.sh`: generan el corpus,
 levantan el stack con `--scale app=N`, ejecutan k6 y Vegeta con una pila limpia
@@ -55,8 +56,10 @@ Cada directorio de resultados incluye:
 - `vegeta-report.txt`, `vegeta-report.json`, `vegeta-plot.html`, `vegeta-run.log`
   y `vegeta-exit-code`.
 - `docker-stats-{k6,vegeta}.txt` con CPU/RAM por contenedor cada 2 s.
-- `metadata.txt` con fecha, CPU, memoria, kernel y versiones de Docker/Compose.
+- `metadata.txt` con fecha, CPU, memoria, kernel, versiones de Docker/Compose y
+  la variante de concurrencia medida.
 - `compose-up-{k6,vegeta}.log`.
+- `compose-logs-{k6,vegeta}.log` con los logs JSON de la app y de Traefik.
 
 ## Variables
 
@@ -73,6 +76,10 @@ Cada directorio de resultados incluye:
 | `VEGETA_RATE` | `50` | Tasa fija (req/s). |
 | `VEGETA_DURATION` | `30s` | Duración del ataque. |
 | `VEGETA_TIMEOUT` | `30s` | Timeout por request. |
+| `EXTRACTION_EXECUTOR` | `thread` | Dónde corre la extracción: `thread` o `process`. |
+| `WORKER_POOL_SIZE` | `4` | Extracciones simultáneas por proceso del servicio. |
+| `WEB_CONCURRENCY` | `1` | Procesos de uvicorn por réplica. |
+| `WORKERS_RESULTS_DIR` | `tests/stress/results/workers` | Resultados de `make stress-workers`. |
 
 Ejemplo:
 
@@ -83,6 +90,22 @@ make stress-k6 RESULTS_DIR=tests/stress/results/baseline
 make stress-vegeta RESULTS_DIR=tests/stress/results/baseline
 make stress-down
 ```
+
+## Comparación de estrategias de concurrencia
+
+`make stress-workers` corre `run_benchmark.sh baseline` (1 réplica) una vez por
+variante, cambiando solo variables de entorno que `docker-compose.yml` pasa al
+servicio:
+
+| Variante | Variables |
+| --- | --- |
+| `threads-4` | valores por defecto |
+| `threads-1` | `WORKER_POOL_SIZE=1` |
+| `processes-4` | `EXTRACTION_EXECUTOR=process` |
+| `processes-1` | `EXTRACTION_EXECUTOR=process WORKER_POOL_SIZE=1` |
+| `uvicorn-4` | `WEB_CONCURRENCY=4 WORKER_POOL_SIZE=1` |
+
+Los resultados y la recomendación están en `docs/perf-workers.md`.
 
 ## Escenario k6 (spike)
 

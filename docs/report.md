@@ -182,3 +182,18 @@ Artefactos esperados en `tests/stress/results/{baseline,scaled}`:
 
 Los artefactos están ignorados por Git y se regeneran con los comandos
 anteriores. El detalle del harness está en `tests/stress/README.md`.
+
+## 11. Actualizaciones posteriores
+
+- **#29 resuelta** (#38 y #40): el endpoint reserva lugar en la cola antes de
+  leer el body, y un corte del cliente durante la subida se registra como `499`.
+  El punto 4 de la sección 7 y el paso 1 de la sección 9 ya no aplican.
+- **#30 evaluada** en `docs/perf-workers.md`: bajo 1 CPU por réplica, ni el
+  process pool ni varios workers de uvicorn mejoran el resultado; se mantiene la
+  configuración de threads.
+- **Corrección a la sección 4.** Al repetir el baseline de 1 réplica con el
+  access log de Traefik, todos los `503` del spike de k6 tenían `OriginStatus=0`:
+  los generó Traefik al quedarse sin réplica disponible, no el backpressure de
+  la app. Las mediciones de este reporte no conservan ese log, así que la
+  corrección se apoya en la corrida nueva (ver `docs/perf-workers.md`, hallazgo
+  4).

@@ -26,16 +26,27 @@ cleanup() {
 }
 trap cleanup EXIT
 
+memory_info() {
+  if [[ -r /proc/meminfo ]]; then
+    grep -E '^(MemTotal|MemAvailable):' /proc/meminfo
+  else
+    echo "MemTotal: $(($(sysctl -n hw.memsize) / 1024)) kB"
+  fi
+}
+
 mkdir -p "$RESULTS_DIR"
 uv run python tests/stress/generate_corpus.py >/dev/null
 
 {
   echo "mode=$MODE"
   echo "replicas=$REPLICAS"
+  echo "extraction_executor=${EXTRACTION_EXECUTOR:-default}"
+  echo "worker_pool_size=${WORKER_POOL_SIZE:-default}"
+  echo "web_concurrency=${WEB_CONCURRENCY:-default}"
   echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "host=$(uname -a)"
-  echo "cpus=$(nproc)"
-  grep -E '^(MemTotal|MemAvailable):' /proc/meminfo
+  echo "cpus=$(getconf _NPROCESSORS_ONLN)"
+  memory_info
   echo "docker=$(docker version --format '{{.Server.Version}}' 2>/dev/null || echo desconocida)"
   echo "compose=$(docker compose version --short 2>/dev/null || echo desconocida)"
 } >"$RESULTS_DIR/metadata.txt"
@@ -52,9 +63,9 @@ run_scenario() {
       timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
       ids="$(docker compose ps -q 2>/dev/null || true)"
       if [[ -n "$ids" ]]; then
-        mapfile -t stats_ids <<<"$ids"
+        # shellcheck disable=SC2086
         docker stats --no-stream --format '{{.Name}}|{{.CPUPerc}}|{{.MemUsage}}' \
-          "${stats_ids[@]}" \
+          $ids \
           | while IFS= read -r line; do
               printf '%s|%s\n' "$timestamp" "$line"
             done
@@ -80,6 +91,7 @@ run_scenario() {
   wait "$monitor_pid" 2>/dev/null || true
   monitor_pid=""
 
+  docker compose logs --no-color >"$RESULTS_DIR/compose-logs-$scenario.log" 2>&1 || true
   docker compose down --remove-orphans >/dev/null 2>&1
   echo "$MODE/$scenario: exit=$exit_code, resultados en $RESULTS_DIR"
 }
