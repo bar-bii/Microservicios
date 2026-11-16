@@ -111,7 +111,8 @@ cliente), y se puede cambiar por entorno sin tocar el código.
 
 1. Repetir el barrido con el corpus oficial y en un host Linux aislado.
 2. Reemplazar el tamaño fijo por un descarte según el tiempo de espera, para
-   que el límite no dependa del tamaño de los PDFs.
+   que el límite no dependa del tamaño de los PDFs. Se resolvió con un límite
+   en bytes en lugar de uno por tiempo: `docs/perf-queue-bytes.md` (#47).
 3. Evaluar si otra estrategia de balanceo en Traefik reduce el desbalance del
    hallazgo 5, lo que permitiría una cola más corta. Hecho en
    `docs/perf-balancing.md` (#46): el despliegue usa `p2c`.

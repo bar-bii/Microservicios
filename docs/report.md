@@ -198,6 +198,9 @@ anteriores. El detalle del harness está en `tests/stress/README.md`.
   `docker-compose.yml`). El barrido y la decisión están en `docs/perf-queue.md`.
 - **#46: balanceo `p2c`** en lugar de `wrr` en Traefik (`LB_STRATEGY` en
   `docker-compose.yml`). La comparación está en `docs/perf-balancing.md`.
+- **#47: límite de la cola por bytes** (`MAX_QUEUE_BYTES`), además del tope
+  por cantidad. Con la cola en orden de llegada no mejora el resultado y queda
+  apagado; la medición está en `docs/perf-queue-bytes.md`.
 - **Corrección a la sección 4.** Al repetir el baseline de 1 réplica con el
   access log de Traefik, todos los `503` del spike de k6 tenían `OriginStatus=0`:
   los generó Traefik al quedarse sin réplica disponible, no el backpressure de
