@@ -7,6 +7,9 @@ DEFAULT_MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 THREAD_EXECUTOR = "thread"
 PROCESS_EXECUTOR = "process"
 EXECUTORS = (THREAD_EXECUTOR, PROCESS_EXECUTOR)
+FIFO_ORDER = "fifo"
+HRRN_ORDER = "hrrn"
+QUEUE_ORDERS = (FIFO_ORDER, HRRN_ORDER)
 
 
 def positive_int_from_env(name: str, default: int) -> int:
@@ -32,10 +35,10 @@ def optional_positive_int_from_env(name: str) -> int | None:
     return positive_int_from_env(name, 0)
 
 
-def executor_from_env(name: str, default: str) -> str:
+def choice_from_env(name: str, default: str, choices: tuple[str, ...]) -> str:
     value = os.getenv(name, default)
-    if value not in EXECUTORS:
-        raise ValueError(f"{name} must be one of: {', '.join(EXECUTORS)}")
+    if value not in choices:
+        raise ValueError(f"{name} must be one of: {', '.join(choices)}")
 
     return value
 
@@ -46,6 +49,7 @@ class ConcurrencyConfig:
     max_queue_size: int = DEFAULT_MAX_QUEUE_SIZE
     executor: str = THREAD_EXECUTOR
     max_queue_bytes: int | None = None
+    queue_order: str = FIFO_ORDER
 
     @property
     def capacity(self) -> int:
@@ -62,8 +66,9 @@ class ConcurrencyConfig:
                 "MAX_QUEUE_SIZE",
                 DEFAULT_MAX_QUEUE_SIZE,
             ),
-            executor=executor_from_env("EXTRACTION_EXECUTOR", THREAD_EXECUTOR),
+            executor=choice_from_env("EXTRACTION_EXECUTOR", THREAD_EXECUTOR, EXECUTORS),
             max_queue_bytes=optional_positive_int_from_env("MAX_QUEUE_BYTES"),
+            queue_order=choice_from_env("QUEUE_ORDER", FIFO_ORDER, QUEUE_ORDERS),
         )
 
 

@@ -4,9 +4,7 @@ from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
-FIFO_ORDER = "fifo"
-HRRN_ORDER = "hrrn"
-QUEUE_ORDERS = (FIFO_ORDER, HRRN_ORDER)
+from application.config import FIFO_ORDER
 
 
 @dataclass(frozen=True, slots=True, eq=False)

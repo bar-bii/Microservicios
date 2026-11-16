@@ -6,6 +6,7 @@ from contextlib import contextmanager
 
 from application.config import PROCESS_EXECUTOR, ConcurrencyConfig
 from application.pdf_extractor import ExtractionResult, PDFExtractor
+from application.worker_gate import WorkerGate
 
 
 class QueueFullError(Exception):
@@ -35,7 +36,7 @@ class DocumentService:
         self._extractor = extractor
         self._config = config or ConcurrencyConfig.from_env()
         self._executor = executor
-        self._workers = asyncio.Semaphore(self._config.worker_pool_size)
+        self._workers = WorkerGate(self._config.worker_pool_size, self._config.queue_order)
         self._pending = 0
         self._pending_bytes = 0
 
@@ -72,7 +73,7 @@ class DocumentService:
         return self._pending_bytes + size <= limit
 
     async def process_admitted(self, pdf_bytes: bytes) -> ExtractionResult:
-        async with self._workers:
+        async with self._workers.worker(len(pdf_bytes)):
             if self._executor is None:
                 return await asyncio.to_thread(self._extractor.extract, pdf_bytes)
 
