@@ -2,7 +2,8 @@ import asyncio
 
 import pytest
 
-from application.worker_gate import FIFO_ORDER, HRRN_ORDER, WorkerGate
+from application.config import FIFO_ORDER, HRRN_ORDER
+from application.worker_gate import WorkerGate
 
 
 class FakeClock:
