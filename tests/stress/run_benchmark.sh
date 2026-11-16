@@ -44,6 +44,7 @@ uv run python tests/stress/generate_corpus.py >/dev/null
   echo "worker_pool_size=${WORKER_POOL_SIZE:-default}"
   echo "max_queue_size=${MAX_QUEUE_SIZE:-default}"
   echo "web_concurrency=${WEB_CONCURRENCY:-default}"
+  echo "lb_strategy=${LB_STRATEGY:-default}"
   echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "host=$(uname -a)"
   echo "cpus=$(getconf _NPROCESSORS_ONLN)"

@@ -12,10 +12,12 @@ VEGETA_TIMEOUT ?= 30s
 WORKERS_RESULTS_DIR ?= tests/stress/results/workers
 QUEUE_RESULTS_DIR ?= tests/stress/results/queue
 QUEUE_SIZES ?= 20 30 40 60 100
+LB_RESULTS_DIR ?= tests/stress/results/lb
+LB_STRATEGIES ?= wrr p2c leasttime
 
 export BASE_URL RESULTS_DIR K6_IMAGE K6_STRICT VEGETA_IMAGE VEGETA_RATE VEGETA_DURATION VEGETA_TIMEOUT
 
-.PHONY: help stress-corpus stress-up stress-down stress-k6 stress-vegeta stress-run stress-baseline stress-scaled stress-workers stress-queue
+.PHONY: help stress-corpus stress-up stress-down stress-k6 stress-vegeta stress-run stress-baseline stress-scaled stress-workers stress-queue stress-lb
 
 .NOTPARALLEL: stress-run
 
@@ -30,6 +32,7 @@ help:
 	@echo "  stress-scaled   5 réplicas + stats; resultados en tests/stress/results/scaled."
 	@echo "  stress-workers  Compara hilos, procesos y workers de uvicorn con 1 réplica (WORKERS_RESULTS_DIR)."
 	@echo "  stress-queue    Compara tamaños de cola (QUEUE_SIZES) con 5 réplicas (QUEUE_RESULTS_DIR)."
+	@echo "  stress-lb       Compara estrategias de balanceo (LB_STRATEGIES) con 5 réplicas (LB_RESULTS_DIR)."
 
 stress-corpus:
 	uv run python tests/stress/generate_corpus.py
@@ -66,4 +69,9 @@ stress-workers:
 stress-queue:
 	for size in $(QUEUE_SIZES); do \
 		MAX_QUEUE_SIZE=$$size RESULTS_DIR=$(QUEUE_RESULTS_DIR)/queue-$$size tests/stress/run_benchmark.sh scaled || exit 1; \
+	done
+
+stress-lb:
+	for strategy in $(LB_STRATEGIES); do \
+		LB_STRATEGY=$$strategy RESULTS_DIR=$(LB_RESULTS_DIR)/$$strategy tests/stress/run_benchmark.sh scaled || exit 1; \
 	done

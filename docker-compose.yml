@@ -48,6 +48,7 @@ services:
       - 'traefik.http.routers.pdf.rule=PathPrefix(`/`)'
       - traefik.http.routers.pdf.entrypoints=web
       - traefik.http.services.pdf.loadbalancer.server.port=8000
+      - "traefik.http.services.pdf.loadbalancer.strategy=${LB_STRATEGY:-wrr}"
       - traefik.http.services.pdf.loadbalancer.healthcheck.path=/health
       - traefik.http.services.pdf.loadbalancer.healthcheck.interval=10s
     deploy:
