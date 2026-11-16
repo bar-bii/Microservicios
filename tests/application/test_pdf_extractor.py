@@ -1,4 +1,6 @@
 import io
+import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -20,6 +22,14 @@ def pdf_with_lines(*pages: tuple[str, ...]) -> bytes:
         pdf.showPage()
     pdf.save()
     return buffer.getvalue()
+
+
+def wait_until(condition: Callable[[], bool], timeout: float = 5.0) -> None:
+    deadline = time.monotonic() + timeout
+    while not condition():
+        if time.monotonic() > deadline:
+            pytest.fail("condition was not met in time")
+        time.sleep(0.001)
 
 
 def test_extract_text_from_valid_pdf():
@@ -96,3 +106,22 @@ def test_concurrent_extractions_return_the_same_text():
 
     assert expected.page_count == 20
     assert all(result == expected for result in results)
+
+
+def test_a_small_pdf_is_extracted_while_a_large_one_is_in_progress():
+    filler = "lorem ipsum dolor sit amet consectetur adipiscing elit " * 2
+    large_pdf = pdf_with_lines(
+        *[tuple(f"page {page} line {line} {filler}" for line in range(40)) for page in range(300)]
+    )
+    small_pdf = (FIXTURES_DIR / "hello.pdf").read_bytes()
+    extractor = PdfiumPDFExtractor()
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        large_extraction = pool.submit(extractor.extract, large_pdf)
+        wait_until(pdf_extractor.PDFIUM_LOCK.locked)
+
+        small_result = extractor.extract(small_pdf)
+
+        assert not large_extraction.done()
+        assert small_result.content == "Hello PDF"
+        assert large_extraction.result(timeout=30).page_count == 300
