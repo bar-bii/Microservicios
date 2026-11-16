@@ -41,6 +41,7 @@ Context for the project's next phase (assignment brief, implemented incrementall
 - Ajuste del tamaño de cola (`MAX_QUEUE_SIZE`): `docs/perf-queue.md`.
 - Estrategia de balanceo de Traefik (`LB_STRATEGY`): `docs/perf-balancing.md`.
 - Límite de la cola por bytes (`MAX_QUEUE_BYTES`): `docs/perf-queue-bytes.md`.
+- Orden de atención de la cola (`QUEUE_ORDER`, HRRN): `docs/perf-queue-order.md`.
 
 ### Observability
 - La app emite un log JSON por request a stdout con `timestamp`, `method`, `path`, `status`, `duration_ms` y `replica` (hostname del contenedor):

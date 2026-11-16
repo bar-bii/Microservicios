@@ -160,7 +160,8 @@ Se eligió el mutex por página por su ventaja en k6.
 2. Repetir las mediciones con el corpus oficial del enunciado y en un host
    Linux aislado, con más de una pasada por versión.
 3. Priorizar los PDFs chicos antes de que entren al pool de 4 threads: el
-   intercalado por página solo actúa entre las extracciones ya activas.
+   intercalado por página solo actúa entre las extracciones ya activas. Hecho
+   en `docs/perf-queue-order.md` (#48).
 
 ## 9. Reproducción
 
