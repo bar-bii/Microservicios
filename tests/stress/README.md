@@ -84,6 +84,9 @@ Cada directorio de resultados incluye:
 | `WORKERS_RESULTS_DIR` | `tests/stress/results/workers` | Resultados de `make stress-workers`. |
 | `QUEUE_SIZES` | `20 30 40 60 100` | Tamaños que recorre `make stress-queue`. |
 | `QUEUE_RESULTS_DIR` | `tests/stress/results/queue` | Resultados de `make stress-queue`. |
+| `LB_STRATEGY` | ver `docker-compose.yml` | Estrategia del balanceador de Traefik: `wrr`, `p2c`, `hrw` o `leasttime`. |
+| `LB_STRATEGIES` | `wrr p2c leasttime` | Estrategias que recorre `make stress-lb`. |
+| `LB_RESULTS_DIR` | `tests/stress/results/lb` | Resultados de `make stress-lb`. |
 
 Ejemplo:
 
@@ -116,6 +119,12 @@ Los resultados y la recomendación están en `docs/perf-workers.md`.
 `make stress-queue` corre `run_benchmark.sh scaled` (5 réplicas) una vez por
 cada valor de `QUEUE_SIZES`, cambiando solo `MAX_QUEUE_SIZE`. Los resultados y
 el valor elegido están en `docs/perf-queue.md`.
+
+## Comparación de estrategias de balanceo
+
+`make stress-lb` corre `run_benchmark.sh scaled` (5 réplicas) una vez por cada
+valor de `LB_STRATEGIES`, cambiando solo `LB_STRATEGY`. Los resultados y la
+estrategia elegida están en `docs/perf-balancing.md`.
 
 ## Escenario k6 (spike)
 

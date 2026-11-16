@@ -42,3 +42,19 @@ def test_makefile_queue_target_sweeps_queue_sizes_with_five_replicas():
         "MAX_QUEUE_SIZE=$$size RESULTS_DIR=$(QUEUE_RESULTS_DIR)/queue-$$size "
         "tests/stress/run_benchmark.sh scaled"
     ) in makefile
+
+
+def test_makefile_lb_target_compares_balancing_strategies_with_five_replicas():
+    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+
+    assert "LB_STRATEGIES ?= wrr p2c leasttime" in makefile
+    assert (
+        "LB_STRATEGY=$$strategy RESULTS_DIR=$(LB_RESULTS_DIR)/$$strategy "
+        "tests/stress/run_benchmark.sh scaled"
+    ) in makefile
+
+
+def test_compose_takes_the_balancing_strategy_from_the_environment():
+    compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+
+    assert "traefik.http.services.pdf.loadbalancer.strategy=${LB_STRATEGY:-" in compose
