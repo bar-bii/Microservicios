@@ -58,3 +58,20 @@ def test_compose_takes_the_balancing_strategy_from_the_environment():
     compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
 
     assert "traefik.http.services.pdf.loadbalancer.strategy=${LB_STRATEGY:-" in compose
+
+
+def test_makefile_queue_bytes_target_sweeps_byte_limits_with_five_replicas():
+    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+
+    assert "QUEUE_MEGABYTES ?= " in makefile
+    assert (
+        "MAX_QUEUE_BYTES=$$((megabytes * 1048576)) "
+        "RESULTS_DIR=$(QUEUE_BYTES_RESULTS_DIR)/mb-$$megabytes "
+        "tests/stress/run_benchmark.sh scaled"
+    ) in makefile
+
+
+def test_compose_takes_the_queue_byte_limit_from_the_environment():
+    compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+
+    assert 'MAX_QUEUE_BYTES: "${MAX_QUEUE_BYTES:-' in compose

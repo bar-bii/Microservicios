@@ -49,6 +49,11 @@ def get_upload_config() -> UploadConfig:
     return _upload_config
 
 
+def declared_size(request: Request, fallback: int) -> int:
+    content_length = request.headers.get("content-length", "")
+    return int(content_length) if content_length.isdigit() else fallback
+
+
 async def read_pdf_upload(request: Request, max_upload_bytes: int) -> bytes:
     try:
         async with request.form() as form:
@@ -85,7 +90,7 @@ async def extract(
     service: Annotated[DocumentService, Depends(get_document_service)],
     upload_config: Annotated[UploadConfig, Depends(get_upload_config)],
 ) -> ExtractResponse:
-    with service.admit():
+    with service.admit(declared_size(request, upload_config.max_upload_bytes)):
         pdf_bytes = await read_pdf_upload(request, upload_config.max_upload_bytes)
 
         try:
