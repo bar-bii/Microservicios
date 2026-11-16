@@ -37,6 +37,7 @@ Context for the project's next phase (assignment brief, implemented incrementall
 
 - Resultados baseline vs 5 réplicas y análisis de cuello de botella: `docs/report.md`.
 - Comparación de threads, procesos y workers de uvicorn (GIL): `docs/perf-workers.md`.
+- Cambio de `pypdf` a `pypdfium2` y comparación antes/después: `docs/perf-extractor.md`.
 
 ### Observability
 - La app emite un log JSON por request a stdout con `timestamp`, `method`, `path`, `status`, `duration_ms` y `replica` (hostname del contenedor):

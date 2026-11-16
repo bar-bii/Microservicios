@@ -7,7 +7,7 @@ import pytest
 
 from application.config import ConcurrencyConfig, UploadConfig
 from application.document_service import DocumentService, QueueFullError
-from application.pdf_extractor import ExtractionResult, PypdfPDFExtractor
+from application.pdf_extractor import ExtractionResult, PdfiumPDFExtractor
 from presentation.main import app
 from presentation.routers.extract import get_document_service, get_upload_config
 
@@ -193,7 +193,7 @@ def single_slot_service() -> DocumentService:
 @pytest.fixture
 def pdf_service() -> Iterator[DocumentService]:
     service = DocumentService(
-        PypdfPDFExtractor(),
+        PdfiumPDFExtractor(),
         config=ConcurrencyConfig(worker_pool_size=1, max_queue_size=1),
     )
     app.dependency_overrides[get_document_service] = lambda: service
