@@ -6,7 +6,7 @@ import pytest
 
 from application.config import ConcurrencyConfig
 from application.document_service import DocumentService, extraction_executor
-from application.pdf_extractor import ExtractionResult, InvalidPDFError, PypdfPDFExtractor
+from application.pdf_extractor import ExtractionResult, InvalidPDFError, PdfiumPDFExtractor
 
 HELLO_PDF = (Path(__file__).parent / "fixtures" / "hello.pdf").read_bytes()
 THREAD_CONFIG = ConcurrencyConfig(worker_pool_size=1, max_queue_size=1)
@@ -60,7 +60,7 @@ async def test_process_executor_extracts_in_a_worker_process():
 @pytest.mark.anyio
 async def test_process_executor_returns_the_extracted_text():
     with extraction_executor(PROCESS_CONFIG) as executor:
-        service = DocumentService(PypdfPDFExtractor(), PROCESS_CONFIG, executor)
+        service = DocumentService(PdfiumPDFExtractor(), PROCESS_CONFIG, executor)
 
         result = await service.process(HELLO_PDF)
 
@@ -70,7 +70,7 @@ async def test_process_executor_returns_the_extracted_text():
 @pytest.mark.anyio
 async def test_process_executor_reports_invalid_pdfs():
     with extraction_executor(PROCESS_CONFIG) as executor:
-        service = DocumentService(PypdfPDFExtractor(), PROCESS_CONFIG, executor)
+        service = DocumentService(PdfiumPDFExtractor(), PROCESS_CONFIG, executor)
 
         with pytest.raises(InvalidPDFError):
             await service.process(b"not a pdf")
