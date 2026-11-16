@@ -54,7 +54,12 @@ def fake_repo(tmp_path: Path) -> tuple[Path, Path, Path]:
     return root, bin_dir, docker_log
 
 
-VARIANT_VARIABLES = ("EXTRACTION_EXECUTOR", "WORKER_POOL_SIZE", "WEB_CONCURRENCY")
+VARIANT_VARIABLES = (
+    "EXTRACTION_EXECUTOR",
+    "WORKER_POOL_SIZE",
+    "MAX_QUEUE_SIZE",
+    "WEB_CONCURRENCY",
+)
 
 
 def run_benchmark(
@@ -142,6 +147,7 @@ def test_run_benchmark_records_the_concurrency_variant(fake_repo):
         variant={
             "EXTRACTION_EXECUTOR": "process",
             "WORKER_POOL_SIZE": "2",
+            "MAX_QUEUE_SIZE": "30",
             "WEB_CONCURRENCY": "3",
         },
     )
@@ -150,6 +156,7 @@ def test_run_benchmark_records_the_concurrency_variant(fake_repo):
     metadata = (root / "tests/stress/results/baseline/metadata.txt").read_text(encoding="utf-8")
     assert "extraction_executor=process" in metadata
     assert "worker_pool_size=2" in metadata
+    assert "max_queue_size=30" in metadata
     assert "web_concurrency=3" in metadata
 
 
@@ -162,6 +169,7 @@ def test_run_benchmark_records_unset_variant_variables_as_default(fake_repo):
     metadata = (root / "tests/stress/results/baseline/metadata.txt").read_text(encoding="utf-8")
     assert "extraction_executor=default" in metadata
     assert "worker_pool_size=default" in metadata
+    assert "max_queue_size=default" in metadata
     assert "web_concurrency=default" in metadata
 
 
