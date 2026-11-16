@@ -74,7 +74,13 @@ def test_makefile_queue_bytes_target_sweeps_byte_limits_with_five_replicas():
 def test_compose_takes_the_queue_byte_limit_from_the_environment():
     compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
 
-    assert 'MAX_QUEUE_BYTES: "${MAX_QUEUE_BYTES:-' in compose
+    assert 'MAX_QUEUE_BYTES: "${MAX_QUEUE_BYTES' in compose
+
+
+def test_compose_lets_an_empty_value_turn_the_byte_limit_off():
+    compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+
+    assert 'MAX_QUEUE_BYTES: "${MAX_QUEUE_BYTES-' in compose
 
 
 def test_makefile_order_target_compares_queue_orders_with_five_replicas():
